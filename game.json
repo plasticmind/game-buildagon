@@ -1,0 +1,9 @@
+{
+  "title": "Buildagon",
+  "url": "/buildagon/",
+  "blurb": "Raise a cozy island from the sea, one hex at a time",
+  "emoji": "🏝️",
+  "kind": "built",
+  "build": "npm run build",
+  "output": "dist"
+}

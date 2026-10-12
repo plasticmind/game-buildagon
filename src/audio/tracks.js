@@ -5,17 +5,18 @@
 
 import { rand } from './synth.js';
 
-// Every track is CC0. `source` links to the original page for credits.
+// Every track is CC0. `source` links to the original page for credits. URLs are
+// relative to the page, so the game works from any folder.
 const OGA = 'https://opengameart.org/content/';
 export const TRACKS = [
-  { url: '/music/infinite-world.mp3', title: 'Infinite World', author: 'Umplix', source: `${OGA}infinite-world` },
-  { url: '/music/first-light-particles.mp3', title: 'First Light Particles', author: 'Yoiyami', source: 'https://opengameart.org/node/182244' },
-  { url: '/music/chilly-bells.mp3', title: 'Chilly Bells', author: 'Alex McCulloch (Pro Sensory)', source: `${OGA}chilly-bells` },
-  { url: '/music/its-not-undertale-2.mp3', title: "It's Not Undertale 2", author: 'PaulinusDavis', source: `${OGA}its-not-undertale-2` },
-  { url: '/music/ooame.mp3', title: 'Ooame', author: 'TAD', source: `${OGA}ooame` },
-  { url: '/music/calm-ambient-3.mp3', title: 'Calm Ambient 3', author: 'cynicmusic', source: `${OGA}calm-ambient-3-lifewave-2k` },
-  { url: '/music/aquaria.mp3', title: 'Aquaria', author: 'cynicmusic', source: `${OGA}aquaria` },
-  { url: '/music/heavenly-loop.mp3', title: 'Heavenly Loop', author: 'isaiah658', source: `${OGA}heavenly-loop` },
+  { url: 'music/infinite-world.mp3', title: 'Infinite World', author: 'Umplix', source: `${OGA}infinite-world` },
+  { url: 'music/first-light-particles.mp3', title: 'First Light Particles', author: 'Yoiyami', source: 'https://opengameart.org/node/182244' },
+  { url: 'music/chilly-bells.mp3', title: 'Chilly Bells', author: 'Alex McCulloch (Pro Sensory)', source: `${OGA}chilly-bells` },
+  { url: 'music/its-not-undertale-2.mp3', title: "It's Not Undertale 2", author: 'PaulinusDavis', source: `${OGA}its-not-undertale-2` },
+  { url: 'music/ooame.mp3', title: 'Ooame', author: 'TAD', source: `${OGA}ooame` },
+  { url: 'music/calm-ambient-3.mp3', title: 'Calm Ambient 3', author: 'cynicmusic', source: `${OGA}calm-ambient-3-lifewave-2k` },
+  { url: 'music/aquaria.mp3', title: 'Aquaria', author: 'cynicmusic', source: `${OGA}aquaria` },
+  { url: 'music/heavenly-loop.mp3', title: 'Heavenly Loop', author: 'isaiah658', source: `${OGA}heavenly-loop` },
 ];
 
 // Like Minecraft's creative mode: music drifts in now and then, never on a loop.
