@@ -83,6 +83,11 @@ export class ObjectRenderer {
     return done;
   }
 
+  // Model bounds in the object's own space, before its placement scale.
+  boundsOf(id) {
+    return this.entries.get(id)?.bounds ?? null;
+  }
+
   // Height of an object's stacking surface above its base, in world units.
   topOf(id) {
     const e = this.entries.get(id);
@@ -110,6 +115,7 @@ export class ObjectRenderer {
     // Low things (flowers, lily pads, floors) cast shadows nobody notices, and
     // every caster is another draw call in the shadow pass.
     _box.setFromObject(model);
+    const bounds = _box.clone();
     const castShadow = (_box.max.y - _box.min.y) * obj.scale >= SHADOW_MIN_HEIGHT;
     model.traverse((o) => {
       o.userData.objectId = obj.id;
@@ -121,7 +127,7 @@ export class ObjectRenderer {
     root.updateMatrixWorld(true);
 
     const item = getItem(obj.item);
-    const entry = { obj, root, model, anim: null, emitters: [], light: null };
+    const entry = { obj, root, model, bounds, anim: null, emitters: [], light: null };
     this._syncDepthLayer(entry);
     if (model.userData.lightOffset || item?.light) {
       const offset = model.userData.lightOffset ?? new THREE.Vector3(0, 1, 0);
@@ -167,7 +173,9 @@ export class ObjectRenderer {
       return;
     }
     e.root.rotation.y = obj.rotY;
-    e.root.scale.setScalar(obj.scale);
+    // Growing plants ease up to their new size.
+    if (opts.grow && obj.scale !== prev.scale) this._animate(e, { type: 'grow', t: 0, from: prev.scale, to: obj.scale });
+    else e.root.scale.setScalar(obj.scale);
     if (opts.animate && (obj.y !== prev.y || obj.x !== prev.x || obj.z !== prev.z)) {
       this._animate(e, { type: 'move', t: 0, from: e.root.position.clone(), to: new THREE.Vector3(obj.x, obj.y, obj.z) });
     } else {
@@ -189,7 +197,7 @@ export class ObjectRenderer {
     const cell = this.world.getCell(q, r);
     const inWater = !cell || cell.type === 'water';
     e.model.traverse((o) => {
-      if (!o.isMesh) return;
+      if (!o.isMesh || o.userData.waterMask) return;
       if (inWater) o.layers.enable(LAYERS.DEPTH);
       else o.layers.disable(LAYERS.DEPTH);
     });
@@ -223,6 +231,13 @@ export class ObjectRenderer {
         const s = popScale(e.anim.t);
         e.model.scale.set(s.xz, s.y, s.xz);
         if (s.done) this._settle(e);
+      } else if (e.anim.type === 'grow') {
+        const k = springValue(e.anim.t, { stiffness: 7, damping: 5 });
+        e.root.scale.setScalar(e.anim.from + (e.anim.to - e.anim.from) * k);
+        if (e.anim.t > 1.6) {
+          e.root.scale.setScalar(e.anim.to);
+          this._settle(e);
+        }
       } else {
         const k = Math.min(1, springValue(e.anim.t, { stiffness: 14, damping: 9 }));
         e.root.position.lerpVectors(e.anim.from, e.anim.to, k);

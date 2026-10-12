@@ -79,8 +79,21 @@ const SETTINGS = [
           ['high', 'High'],
         ],
       },
+      {
+        key: 'retina',
+        label: 'Retina sharpness',
+        help: 'Turn off to run faster on older Macs',
+        type: 'switch',
+      },
       { key: 'grassDensity', label: 'Grass density', type: 'range', min: 0, max: 1, step: 0.05, format: pct, heavy: true },
       { key: 'showHints', label: 'Show control hints', type: 'switch' },
+    ],
+  },
+  {
+    title: 'Nature',
+    items: [
+      { key: 'wildlife', label: 'Wildlife', help: 'Animals move in when you build them a home', type: 'switch' },
+      { key: 'natureGrowth', label: 'Plants spread', help: 'Flowers, reeds, and trees grow on their own', type: 'switch' },
     ],
   },
 ];

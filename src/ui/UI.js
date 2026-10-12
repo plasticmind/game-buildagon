@@ -14,7 +14,7 @@ import { Hud } from './Hud.js';
 import { BuildMenu } from './BuildMenu.js';
 import { SystemMenu } from './SystemMenu.js';
 import { Modal, panelHeader } from './Modal.js';
-import { renderControls, renderKeys } from './controls.js';
+import { renderControls, renderKeys, renderNatureGuide } from './controls.js';
 
 const WELCOME_KEY = 'buildagon.welcomed.v1';
 const TOAST_MS = 2800;
@@ -265,11 +265,11 @@ export class UI extends Emitter {
         id: 'help-title',
         title: 'Controls',
         iconName: 'keyboard',
-        subtitle: 'Everything you can do, at a glance. Press F1 or ? to close.',
+        subtitle: 'Everything you can do, and who moves in when you build. Press F1 or ? to close.',
         onClose: () => this.toggleHelp(false),
         closeLabel: 'Close controls',
       }),
-      h('div', { class: 'help-body' }, renderControls()),
+      h('div', { class: 'help-body' }, renderControls(), renderNatureGuide()),
     );
     help.focusTarget = () => help.panel.querySelector('.close-btn');
     return help;

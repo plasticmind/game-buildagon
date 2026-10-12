@@ -16,8 +16,11 @@ export const DEFAULT_SETTINGS = {
   timePaused: false,
   windStrength: 1, // 0..2
   quality: 'high', // 'low' | 'medium' | 'high'
+  retina: true, // Render at the display's full pixel density. Off is faster on older Macs.
   grassDensity: 1, // 0..1
   showHints: true,
+  wildlife: true, // Animals move in when the world offers them a home.
+  natureGrowth: true, // Plants spread on their own.
 };
 
 export const settings = { ...DEFAULT_SETTINGS };

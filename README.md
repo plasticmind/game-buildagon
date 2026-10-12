@@ -68,6 +68,41 @@ closes the tab, raise the camera speed in **Settings** instead.
 - **Decorations** go anywhere: on terrain, on structures, or floating on water
   for lily pads, boats, and stepping stones. Press G to snap them to the grid.
 
+### Wildlife and growing plants
+
+What you build invites animals to move in. They arrive with a little flourish,
+and a message tells you who came:
+
+| Build | Who moves in |
+| --- | --- |
+| Lily pads | Frogs |
+| A small pond | Ducks, and ducklings when reeds grow on the bank |
+| A lake of 13 or more water tiles | Swans |
+| A bridge, walkway, or stepping stones by a pond | Koi |
+| A rowboat, or a lake of 4 or more tiles | Jumping fish |
+| Two or more flower patches | Butterflies |
+| Three or more trees together | Songbirds |
+| A sandy beach by the sea | Gulls |
+| Tall grass, bushes, and ferns | Rabbits |
+| A house with a door and a roof | A cat |
+
+Animals keep their own hours: butterflies and rabbits tuck away at night,
+ducks sleep on the water, and frogs croak louder after dark. Remove what drew
+them in, and they leave.
+
+Plants spread on their own, a little at a time, near where you're looking.
+Flower patches seed wildflowers, lily pads and reeds spread along ponds,
+mushrooms sprout by logs and in shady groves, and groves grow saplings that
+become full trees. To turn wildlife or growing plants off, press Esc and go to
+**Settings** > **Nature**. Press F1 to see the full guide in the game.
+
+### Running on older computers
+
+If the game feels slow, press Esc and go to **Settings** > **World and
+graphics**. Turn off **Retina sharpness** to draw about a third as many pixels
+on high-density displays, or set **Graphics quality** to **Low**, which also
+drops bloom, antialiasing, and half of the wildlife.
+
 Your world autosaves every minute and when you close the tab. Use the system
 menu (Esc) to save named copies, load them, export them as files, or start a
 new world on open water, on a starter island, or on a small empty island.
@@ -83,6 +118,7 @@ new world on open water, on a starter island, or on a small empty island.
 | `src/build` | Placement, blueprint ghost, hotbars, undo history |
 | `src/player` | Input and the fly camera |
 | `src/fx` | Particles and spring animations |
+| `src/life` | Habitats, wildlife, and plants that grow on their own |
 | `src/ui`, `src/audio`, `src/save` | Interface, synthesized sound, save system |
 
 For conventions and module contracts, see

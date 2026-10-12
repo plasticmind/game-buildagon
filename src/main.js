@@ -14,6 +14,8 @@ import { GrassRenderer } from './world/GrassRenderer.js';
 import { WaterRenderer } from './world/WaterRenderer.js';
 import { generateStarterWorld, generateEmptyIsland } from './world/worldgen.js';
 import { ObjectRenderer } from './world/ObjectRenderer.js';
+import { Wildlife } from './life/Wildlife.js';
+import { Growth } from './life/Growth.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { Hotbars } from './build/hotbars.js';
 import { BuildController } from './build/BuildController.js';
@@ -43,6 +45,8 @@ const grass = new GrassRenderer(scene, world);
 const water = new WaterRenderer(scene, world, particles);
 const objects = new ObjectRenderer(scene, world, { particles });
 const audio = new AudioSystem(settings);
+const wildlife = new Wildlife(scene, world, { objects, particles, audio });
+const growth = new Growth(world, { particles, sound: wildlife.ctx.sound });
 const hotbars = new Hotbars();
 const input = new Input(pipeline.canvas);
 const cameraRig = new FlyCamera(camera, input, world, settings);
@@ -103,7 +107,10 @@ function applySettings() {
   U.uWindStrength.value = settings.windStrength;
   sky.dayLengthMinutes = settings.dayLengthMinutes;
   sky.paused = settings.timePaused;
-  pipeline.setQuality(settings.quality);
+  pipeline.setQuality(settings.quality, settings.retina);
+  wildlife.setQuality(settings.quality);
+  wildlife.setEnabled(settings.wildlife);
+  growth.setEnabled(settings.natureGrowth);
   const qualityGrass = { low: 0.35, medium: 0.7, high: 1 }[settings.quality] ?? 1;
   grass.setDensity(settings.grassDensity * qualityGrass);
   audio.applySettings(settings);
@@ -116,6 +123,7 @@ ui.on('newWorld', newWorld);
 ui.on('menu', (open) => build.setEnabled(!open));
 ui.on('timeOfDay', (h) => (sky.time = h));
 build.on('state', (s) => ui.setState(s));
+wildlife.on('announce', (msg) => ui.toast(msg));
 audio.onTrack = (track) => ui.toast(`Now playing: ${track.title} by ${track.author}`);
 
 // ---- Input routing --------------------------------------------------------
@@ -229,6 +237,8 @@ function step(dt) {
   grass.update(dt, camera);
   water.update(dt, camera);
   objects.update(dt, camera);
+  wildlife.update(dt, camera);
+  growth.update(dt * timeLapse, cameraRig.focus);
   particles.update(dt, camera);
 
   // The ambience mix eases toward these values, so 10 updates a second is plenty.
@@ -269,4 +279,4 @@ function advance(seconds = 1, fps = 30) {
 }
 
 // Handy for debugging from the browser console.
-window.game = { advance, world, pipeline, scene, camera, sky, terrain, grass, water, objects, particles, audio, hotbars, input, cameraRig, build, saves, ui, settings, U };
+window.game = { advance, world, pipeline, scene, camera, sky, terrain, grass, water, objects, wildlife, growth, particles, audio, hotbars, input, cameraRig, build, saves, ui, settings, U };

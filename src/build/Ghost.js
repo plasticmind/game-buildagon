@@ -143,7 +143,7 @@ export class Ghost {
     this.bounds = new THREE.Box3().setFromObject(model);
     const ghost = new THREE.Group();
     model.traverse((o) => {
-      if (!o.isMesh) return;
+      if (!o.isMesh || o.userData.waterMask) return;
       this._modelGeometries.push(o.geometry);
       const m = o.matrixWorld.clone();
       const fill = new THREE.Mesh(o.geometry, this.fillMat);
@@ -237,7 +237,7 @@ export class Ghost {
     this.objectHighlight.visible = !!root;
     if (!root) return;
     root.traverse((o) => {
-      if (!o.isMesh) return;
+      if (!o.isMesh || o.userData.waterMask) return;
       const fill = new THREE.Mesh(o.geometry, this.destroyFill);
       fill.matrixAutoUpdate = false;
       fill.userData.source = o;

@@ -194,7 +194,9 @@ export class RenderPipeline {
     U.uResolution.value.copy(size);
   }
 
-  setQuality(level = 'high') {
+  // `retina` false caps rendering at one pixel per CSS pixel, which is much
+  // cheaper on high-density displays.
+  setQuality(level = 'high', retina = true) {
     const q = QUALITY[level] ?? QUALITY.high;
     this.quality = QUALITY[level] ? level : 'high';
     this.shadowMapSize = q.shadowMapSize;
@@ -206,7 +208,7 @@ export class RenderPipeline {
       this.sceneTarget.dispose(); // Reallocated with the new sample count on next use.
     }
 
-    const pr = Math.min(devicePixelRatio, q.pixelRatio);
+    const pr = Math.min(retina ? devicePixelRatio : 1, q.pixelRatio);
     if (this.renderer.getPixelRatio() !== pr) {
       this.renderer.setPixelRatio(pr);
       this.resize();

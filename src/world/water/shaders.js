@@ -35,6 +35,19 @@ const WAVES = [
 });
 const DISPLACED_WAVES = 3;
 
+// The displaced swell height at (x, z), matching wWaveHeight in the shaders,
+// so things floating on the water ride the same waves.
+export function waveHeight(x, z, time, wind = 1) {
+  const reach = 1 - THREE.MathUtils.smoothstep(Math.hypot(x, z), 170, 320);
+  const amp = reach * Math.min(1.4, Math.max(0.5, 0.6 + 0.4 * wind));
+  let h = 0;
+  for (let i = 0; i < DISPLACED_WAVES; i++) {
+    const w = WAVES[i];
+    h += w.amp * Math.sin((x * w.dx + z * w.dz) * w.k - time * w.omega + w.phase);
+  }
+  return h * amp;
+}
+
 const phaseOf = (w) => `dot(p, vec2(${f(w.dx)}, ${f(w.dz)})) * ${f(w.k)} - uTime * ${f(w.omega)} + ${f(w.phase)}`;
 
 const WAVE_PARS = /* glsl */ `

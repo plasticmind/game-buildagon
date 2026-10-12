@@ -1707,6 +1707,27 @@ body {
   color: var(--ink);
 }
 
+.nature-guide {
+  margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.nature-guide .controls-row {
+  grid-template-columns: 1fr auto;
+}
+.nature-guide dd {
+  text-align: right;
+  white-space: nowrap;
+}
+.nature-build {
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+.nature-note {
+  grid-column: 1 / -1;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+
 /* ---- Welcome card ------------------------------------------------------- */
 
 .welcome {

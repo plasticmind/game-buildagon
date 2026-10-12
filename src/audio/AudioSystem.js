@@ -5,11 +5,13 @@
 //
 //   unlock()                    create or resume the context (call on a user gesture)
 //   play(name, opts)            one-shot effect; see sfx.js for the names
+//   critter(name, opts)         wildlife call on the ambience bus; see critters.js
 //   setAmbience({ night, water, waterfall, height, wind })   every frame
 //   applySettings(settings)     master, SFX, ambience, and music volume
 //   update(dt)                  drives the ambience beds and music
 
 import { SFX } from './sfx.js';
+import { CRITTERS } from './critters.js';
 import { Ambience } from './ambience.js';
 import { Music } from './music.js';
 import { TrackPlayer } from './tracks.js';
@@ -127,6 +129,26 @@ export class AudioSystem {
       volume: Math.max(0, Number(volume) || 0) * (recipe.gain ?? 1),
       pan: Number(pan) || 0,
       reverb: recipe.reverb ?? 0.1,
+    });
+    try {
+      recipe.play(voice);
+    } finally {
+      voice.finish();
+    }
+  }
+
+  // A wildlife call (see critters.js). It plays on the ambience bus, so the
+  // ambience slider sets its level, and it never starts the audio context.
+  critter(name, { pitch = 1, volume = 1, pan = 0 } = {}) {
+    if (!this.running || this.ambienceLevel < 0.001) return;
+    const recipe = CRITTERS[name];
+    if (!recipe || this.voices >= MAX_VOICES - 6 || volume < 0.01) return;
+    const voice = new Voice(this, {
+      bus: this.ambBus,
+      pitch: Math.max(0.25, pitch) * (1 + (Math.random() * 2 - 1) * (recipe.spread ?? 0.06)),
+      volume: volume * (recipe.gain ?? 1),
+      pan,
+      reverb: recipe.reverb ?? 0.2,
     });
     try {
       recipe.play(voice);

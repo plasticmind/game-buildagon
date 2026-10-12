@@ -150,6 +150,12 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
 - **Lights switch on only at night.** The pool of six point lights is visible
   only when something glows nearby after dusk. `objects.prewarm()` compiles the
   other shader variant in the background so the switch never stalls.
+- **Wildlife stays light.** Creatures update in about 0.15 ms per frame for
+  45 animals, hide beyond 110 units, and the habitat scan runs only after
+  edits settle. Low quality halves the animals and drops their shadows.
+- **Retina is optional.** The **Retina sharpness** setting caps the pixel
+  ratio at 1, which cuts the pixel count by about two thirds on Retina
+  displays.
 - **Small things don't cast shadows.** Objects under 0.7 units tall skip the
   shadow pass, and the shadow map re-renders every other frame.
 - **Post-processing is downsized.** Bloom blurs at a quarter of three's default
@@ -158,6 +164,37 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
   the camera, snapped to the grid step, with coarse rings to the horizon.
 - **Hidden faces never exist.** Terrain columns emit side walls only where a
   neighbor is lower, and three.js frustum-culls every chunk and object.
+
+## Wildlife and growth (`src/life`)
+
+- `habitats.js` reads the world and returns habitat slots per species:
+  `{ key, species, x, y, z, ...data }`. The table at the top of the file says
+  which builds invite which animals. It also exports the shared world queries
+  `surfaceAt`, `waterBodies`, `inBody`, and `edgeClearance`.
+- `Wildlife.js` re-reads habitats 0.8 seconds after the last edit and
+  reconciles slots with live creatures: same key keeps the creature, a nearby
+  new slot adopts it, a new slot spawns one (animated once the world has
+  settled), and an orphaned creature leaves. Creatures are never saved; a
+  loaded world starts with its animals in place. It emits `'announce'` the
+  first time each kind arrives in a world.
+- `Creature.js` is the base class. A creature owns `root` (a group whose
+  origin sits on the ground, water, or perch), faces local +Z along `heading`,
+  and runs `start(arrive)`, `tick(dt)`, and `onLeave()`. It sets `gone` when
+  it's done leaving and `hidden` when it's out of sight (night roosts).
+- `species/*.js` hold the behaviors, `models.js` the procedural models,
+  `swim.js` water navigation, and `flight.js` wing poses and flight paths.
+- Creatures share `ctx`: world queries, `walkable()` for ground paths (no
+  water, no walls or fences, at most `maxStep` levels), positional `sound()`
+  (calls in `src/audio/critters.js`, on the ambience bus), particles, and
+  `claim()` so two animals don't share a pad or perch.
+- `Growth.js` spreads plants near the camera's focus every 24 to 42 seconds of
+  game time (the time-lapse speeds it up). Grown plants are ordinary objects
+  with `grown: true`. They save with the world and skip the undo history. If
+  their ground changes in a way that strands them, they're removed.
+- Swimmers enable the `DEPTH` layer, so the water draws a soft foam ring where
+  they meet it. Koi stay off it so the water above them keeps its depth color.
+- `game.wildlife.list()` and `game.wildlife.slots` help with debugging, and
+  `game.growth.grow(focus)` runs one round of growth on demand.
 
 ## Models (`src/catalog`)
 
@@ -169,6 +206,10 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
   and `assemble({ solid, double, foliage, glow })`, which merges parts into one
   mesh per shared material.
 - Placement conventions per placement type are in the header of `catalog.js`.
+- Hollow models that float, like the rowboat, cap their opening with
+  `waterMask(geometry)` from `util.js`. The cap writes depth but no color
+  after the opaque pass, so the transparent water never draws inside them.
+  Ghosts, highlights, raycasts, and the depth pre-pass skip it.
 
 ## Module ownership
 
@@ -181,6 +222,7 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
 | Nature models | `src/catalog/models/nature.js`, `src/catalog/models/tiles.js` |
 | Structure models | `src/catalog/models/structures.js`, `src/catalog/models/props.js` |
 | UI, audio, saves | `src/ui/*`, `src/audio/*`, `src/save/*`, and the `<!-- UI-FONTS -->` line in `index.html` |
+| Wildlife and growth | `src/life/*` |
 
 If you need a change in a file you don't own, don't edit it. Describe the change
 in your final report instead.

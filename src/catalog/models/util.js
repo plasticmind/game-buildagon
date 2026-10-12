@@ -228,6 +228,24 @@ export function assemble({ solid = [], double = [], foliage = [], glow = [] } = 
   return group;
 }
 
+// Invisible cap that keeps water out of a hollow model, such as a boat hull.
+// It writes depth but no color, after every opaque mesh, so the transparent
+// water behind it fails the depth test. Ghosts, highlights, raycasts, shadows,
+// and the water depth pre-pass all skip it (check userData.waterMask).
+const WATER_MASK_MAT = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide, fog: false });
+
+export function waterMask(geo) {
+  const m = new THREE.Mesh(geo, WATER_MASK_MAT);
+  m.name = 'waterMask';
+  m.userData.waterMask = true;
+  m.renderOrder = 1;
+  m.castShadow = false;
+  m.receiveShadow = false;
+  m.raycast = () => {};
+  m.layers.set(LAYERS.WORLD);
+  return m;
+}
+
 // Lighten (amount > 0) or darken (amount < 0) a color. Returns a hex string.
 export function shade(color, amount) {
   const c = new THREE.Color(color);

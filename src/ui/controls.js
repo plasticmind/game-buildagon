@@ -85,3 +85,56 @@ export function renderControls() {
     ),
   );
 }
+
+// Who each build invites, and what spreads on its own. Matches life/habitats.js
+// and life/Growth.js.
+export const NATURE_GUIDE = [
+  {
+    title: 'Who moves in',
+    rows: [
+      ['Lily pads', 'Frogs'],
+      ['A small pond', 'Ducks'],
+      ['Reeds beside a pond', 'Ducklings'],
+      ['A lake of 13 or more water tiles', 'Swans'],
+      ['A bridge or stepping stones by a pond', 'Koi'],
+      ['A rowboat, or a lake of 4 or more tiles', 'Jumping fish'],
+      ['Two or more flower patches', 'Butterflies'],
+      ['Three or more trees together', 'Songbirds'],
+      ['A sandy beach by the sea', 'Gulls'],
+      ['Tall grass, bushes, and ferns', 'Rabbits'],
+      ['A house with a door and a roof', 'A cat'],
+    ],
+  },
+  {
+    title: 'What grows on its own',
+    rows: [
+      ['Flower patches', 'Wildflowers'],
+      ['Lily pads on a pond', 'More lily pads'],
+      ['Reeds on a bank', 'More reeds'],
+      ['Logs, stumps, and shady groves', 'Mushrooms'],
+      ['Three or more trees together', 'Young trees'],
+    ],
+  },
+];
+
+export function renderNatureGuide() {
+  return h(
+    'div',
+    { class: 'controls nature-guide' },
+    NATURE_GUIDE.map((group) =>
+      h(
+        'section',
+        { class: 'controls-group' },
+        h('h3', { class: 'controls-title' }, group.title),
+        h(
+          'dl',
+          { class: 'controls-list' },
+          group.rows.map(([build, result]) =>
+            h('div', { class: 'controls-row' }, h('dt', { class: 'nature-build' }, build), h('dd', { class: 'controls-label' }, result)),
+          ),
+        ),
+      ),
+    ),
+    h('p', { class: 'nature-note' }, 'To turn wildlife or growing plants off, press Esc and go to Settings > Nature.'),
+  );
+}

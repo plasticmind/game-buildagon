@@ -27,6 +27,7 @@ import {
   beam,
   rod,
   face,
+  waterMask,
 } from './util.js';
 
 const TAU = Math.PI * 2;
@@ -531,6 +532,22 @@ function strake(sections, j, inward) {
   return g;
 }
 
+// Surface spanning the inner gunwales from stern to bow, for the water mask.
+function hullLid(sections) {
+  const pos = [];
+  const last = sections[0].length - 1;
+  for (let s = 0; s < sections.length - 1; s++) {
+    const a = sections[s][0];
+    const b = sections[s][last];
+    const c = sections[s + 1][last];
+    const d = sections[s + 1][0];
+    for (const p of [a, b, c, a, c, d]) pos.push(...p);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  return g;
+}
+
 function boat(variant, rng) {
   const solid = [];
   const hullC = [PALETTE.boat, PALETTE.fabricBlue, PALETTE.fabricRed][variant];
@@ -572,6 +589,9 @@ function boat(variant, rng) {
 
   const hull = assemble({ solid });
   hull.name = 'hull';
+  // The hull floor sits below the waterline, so cap the opening at the gunwales
+  // to keep the water out.
+  hull.add(waterMask(hullLid(inner)));
   const root = new THREE.Group();
   root.add(hull);
   const phase = rng() * TAU;

@@ -27,6 +27,7 @@ export const SAVE_VERSION = 1;
 //   edge     edge index 0-5 for edge items (walls, fences), else null.
 //   ground   'q,r' key of the terrain cell the object rests on, else null. When that
 //            cell's height changes, the object moves with it.
+//   grown    true when nature grew the object on its own (see life/Growth.js).
 
 export function rimY(h) {
   return h * LEVEL_H;
@@ -143,6 +144,7 @@ export class World extends Emitter {
       edge: o.edge ?? null,
       ground: o.ground ?? null,
     };
+    if (o.grown) obj.grown = true;
     if (obj.id >= this.nextId) this.nextId = obj.id + 1;
     this.objects.set(obj.id, obj);
     this._index(obj, true);
@@ -211,7 +213,7 @@ export class World extends Emitter {
     for (const c of this.cells.values()) cells.push([c.q, c.r, c.h, c.type, c.variant]);
     const objects = [];
     for (const o of this.objects.values()) {
-      objects.push({
+      const out = {
         id: o.id,
         item: o.item,
         variant: o.variant,
@@ -222,7 +224,9 @@ export class World extends Emitter {
         cell: o.cell,
         edge: o.edge,
         ground: o.ground,
-      });
+      };
+      if (o.grown) out.grown = true;
+      objects.push(out);
     }
     return { version: SAVE_VERSION, cells, objects, meta: { ...this.meta } };
   }
@@ -250,6 +254,7 @@ export class World extends Emitter {
         edge: o.edge ?? null,
         ground: o.ground ?? null,
       };
+      if (o.grown) obj.grown = true;
       this.objects.set(obj.id, obj);
       this._index(obj, true);
       if (obj.id >= this.nextId) this.nextId = obj.id + 1;
