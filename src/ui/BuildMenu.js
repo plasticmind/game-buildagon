@@ -1,5 +1,6 @@
 // Build menu (C): category tabs, a search field, and a grid of item cards.
-// Click a card to hold the item, or drag it onto a hotbar slot.
+// Click a card to hold the item, or drag it onto a hotbar slot. Locked items
+// (gifts from rare visitors) stay hidden until the journal unlocks them.
 
 import { h, showThumb, uniqueId } from './dom.js';
 import { icon } from './icons.js';
@@ -17,6 +18,7 @@ export class BuildMenu extends Modal {
     this.query = '';
     this.cards = new Map();
     this.tabs = new Map();
+    this.tabCounts = new Map();
 
     const gridId = uniqueId('build-grid');
     const searchId = uniqueId('build-search');
@@ -63,7 +65,8 @@ export class BuildMenu extends Modal {
       'div',
       { class: 'tabs', role: 'tablist', 'aria-label': 'Item categories' },
       this.categories.map((cat) => {
-        const count = catalog.itemsInCategory(cat.id).length;
+        const count = h('span', { class: 'tab-count', 'aria-hidden': 'true' });
+        this.tabCounts.set(cat.id, count);
         const tab = h(
           'button',
           {
@@ -78,7 +81,7 @@ export class BuildMenu extends Modal {
           },
           icon(cat.id, { size: 18 }),
           h('span', { class: 'tab-name' }, cat.name),
-          h('span', { class: 'tab-count', 'aria-hidden': 'true' }, String(count)),
+          count,
         );
         this.tabs.set(cat.id, tab);
         return tab;
@@ -95,6 +98,23 @@ export class BuildMenu extends Modal {
 
     this.panel.append(header, this.tablist, this.body);
     this.visible = [];
+    this.refreshCounts();
+  }
+
+  available(item) {
+    return !item.locked || !!this.ui.ctx.journal?.isUnlocked(item.id);
+  }
+
+  refreshCounts() {
+    for (const [id, el] of this.tabCounts) {
+      el.textContent = String(this.items.filter((it) => it.category === id && this.available(it)).length);
+    }
+  }
+
+  // Call when the journal unlocks an item.
+  refreshLocks() {
+    this.refreshCounts();
+    if (this.isOpen) this.filter();
   }
 
   buildCard(item) {
@@ -170,7 +190,9 @@ export class BuildMenu extends Modal {
 
     for (const { btn, thumb, item } of this.cards.values()) {
       let show;
-      if (searching) {
+      if (!this.available(item)) {
+        show = false;
+      } else if (searching) {
         const hay = [item.name, catName.get(item.category) ?? '', ...(item.variants ?? [])].join(' ').toLowerCase();
         show = tokens.every((t) => hay.includes(t));
       } else {

@@ -48,6 +48,7 @@ or press Esc and choose **New world**.
 | Ctrl+Z or Cmd+Z | Undo |
 | Ctrl+Shift+Z or Cmd+Shift+Z | Redo |
 | Ctrl+S or Cmd+S | Quick save |
+| J | Open the nature journal |
 | P | Hide the HUD for screenshots |
 | F1 or ? | Show the controls |
 | Esc | Close menus, leave destroy mode, or open the system menu |
@@ -64,11 +65,16 @@ closes the tab, raise the camera speed in **Settings** instead.
   Water at sea level joins the ocean.
 - **Walls and fences** snap to the hex edge nearest the cursor. Click an edge
   that already has a wall to build the next story.
-- **Roofs and ceilings** land on top of the walls around a cell.
+- **Roofs and ceilings** land on top of the walls around a cell. Hex roofs on
+  neighboring cells at the same height join into one roof, so a house that
+  spans several cells gets a single roof with ridges and valleys.
+- **Furniture** turns a house into a home: tables, chairs, beds, bookshelves,
+  rugs, lamps, a fireplace, and more. Press H until you reach the **Home**
+  hotbar row to have the basics at hand.
 - **Decorations** go anywhere: on terrain, on structures, or floating on water
   for lily pads, boats, and stepping stones. Press G to snap them to the grid.
 
-### Wildlife and growing plants
+### Wildlife
 
 What you build invites animals to move in. They arrive with a little flourish,
 and a message tells you who came:
@@ -89,6 +95,40 @@ and a message tells you who came:
 Animals keep their own hours: butterflies and rabbits tuck away at night,
 ducks sleep on the water, and frogs croak louder after dark. Remove what drew
 them in, and they leave.
+
+### Rare visitors and the nature journal
+
+Some animals only visit now and then, at certain times of day, when you've built
+them just the right spot. Press J to open your nature journal. It records every
+animal you spot and the day you first saw it, gives a hint for each common
+animal you haven't found yet, and a riddle for each rare visitor.
+
+The journal belongs to you, not to an island, so it carries across worlds. Your
+browser stores it. A `?fresh` tab uses a temporary journal.
+
+<details>
+<summary>Spoilers: what each rare visitor needs, and one more surprise</summary>
+
+| Build | Who visits | When |
+| --- | --- | --- |
+| Three or more glowing mushrooms close together | The mushroom fairy, who leaves a moonflower behind and unlocks moonflowers in the build menu | 23:30 to 4:30 |
+| A grove with three or more pines | An owl, whose head follows you around | At night |
+| An island with 12 or more coast tiles on the open sea | A whale, far out at sea | 5:30 to 8:00, and 17:00 to 19:30 |
+| Trees beside a meadow of tall grass, bushes, or ferns | A fox, which naps by a campfire nearby until 23:30 | 16:30 to 19:30 |
+| A waterfall that pours into a lake of 4 or more tiles, with a bank at the lake's level | A bear, fishing at the foot of the falls | 5:00 to 8:30 |
+| A campfire on a stone or snow tile at level 5 or higher | A baby dragon | 22:00 to 4:30 |
+| A sandy beach of 3 or more tiles, with no lights or buildings nearby | Sea turtle hatchlings | 21:00 to 3:30 |
+
+Rare visitors don't come every time their hours start. If one skips a few times
+in a row, it's sure to come the next time.
+
+One more surprise: about one common animal in 30 is golden. It sparkles now and
+then, and spotting one earns its journal page a golden badge. The game never
+mentions golden animals until you find one.
+
+</details>
+
+### Plants that grow on their own
 
 Plants spread on their own, a little at a time, near where you're looking.
 Flower patches seed wildflowers, lily pads and reeds spread along ponds,

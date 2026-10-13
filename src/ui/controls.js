@@ -39,6 +39,7 @@ export const CONTROL_GROUPS = [
     rows: [
       { keys: [['T']], label: 'Hold for time-lapse' },
       { keys: [[MOD, 'S']], label: 'Quick save' },
+      { keys: [['J']], label: 'Nature journal' },
       { keys: [['P']], label: 'Hide the HUD' },
       { keys: [['F1'], ['?']], label: 'Help' },
       { keys: [['Esc']], label: 'Close menus, leave destroy mode, or open the system menu' },
@@ -134,6 +135,11 @@ export function renderNatureGuide() {
           ),
         ),
       ),
+    ),
+    h(
+      'p',
+      { class: 'nature-note' },
+      'Press J to open your nature journal. It keeps every animal you spot, and riddles that point to rare visitors who only come at certain times of day.',
     ),
     h('p', { class: 'nature-note' }, 'To turn wildlife or growing plants off, press Esc and go to Settings > Nature.'),
   );

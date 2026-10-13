@@ -16,6 +16,16 @@ const C6 = 1046.5;
 const G4 = 392;
 
 export const SFX = {
+  // A new page in the nature journal: a soft, rising sparkle.
+  discover: {
+    gain: 0.7,
+    reverb: 0.35,
+    spread: 0.01,
+    play(v) {
+      [C5, E5, G5, C6].forEach((f, i) => v.bell(f, { at: i * 0.09, d: 0.9, g: 0.08 }));
+    },
+  },
+
   // Soft earthy thump with a tiny clack on top.
   place_tile: {
     gain: 0.9,

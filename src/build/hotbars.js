@@ -58,9 +58,14 @@ export class Hotbars extends Emitter {
     return { presets: this.presets, activePreset: this.activePreset, activeSlot: this.activeSlot };
   }
 
+  // Saves from before a default preset existed get it added at the end.
   fromJSON(data) {
     if (!data?.presets?.length) return;
     this.presets = data.presets.map((p) => ({ name: p.name, slots: [...p.slots] }));
+    const names = new Set(this.presets.map((p) => p.name));
+    for (const p of DEFAULT_HOTBARS) {
+      if (!names.has(p.name)) this.presets.push({ name: p.name, slots: [...p.slots] });
+    }
     this.activePreset = Math.min(data.activePreset ?? 0, this.presets.length - 1);
     this.activeSlot = data.activeSlot ?? 0;
     this.emit('change', this);

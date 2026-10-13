@@ -608,6 +608,11 @@ export class BuildController extends Emitter {
         ghost.hideRing();
         break;
       case 'cellItem':
+        // A roof previews joined to the level roofs next door.
+        if (this.item?.id === 'roof_hex') {
+          const joins = this.objects.roofJoins(target.q, target.r, target.y, target.rotY);
+          ghost.setItem(this.item.id, this.variantFor(this.item.id), 1, { joins });
+        }
         ghost.setTransform(target.x, target.y, target.z, target.rotY, 1);
         if (target.valid) ghost.showRing(target.q, target.r, target.ringY);
         else ghost.hideRing();

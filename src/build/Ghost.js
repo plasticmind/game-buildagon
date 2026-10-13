@@ -131,14 +131,16 @@ export class Ghost {
 
   // ---- Model preview --------------------------------------------------------
 
-  setItem(itemId, variant = 0, seed = 1) {
-    const k = `${itemId}|${variant}|${seed}`;
+  // opts go to the model builder, such as { joins } for a roof that will join
+  // its neighbors.
+  setItem(itemId, variant = 0, seed = 1, opts = {}) {
+    const k = `${itemId}|${variant}|${seed}|${opts.joins ?? 0}`;
     if (k === this.modelKey) return;
     this.modelKey = k;
     this._clearHolder();
     this.bounds = null;
     if (!itemId) return;
-    const model = buildModel(itemId, variant, seed);
+    const model = buildModel(itemId, variant, seed, opts);
     model.updateMatrixWorld(true);
     this.bounds = new THREE.Box3().setFromObject(model);
     const ghost = new THREE.Group();

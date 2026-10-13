@@ -1,5 +1,5 @@
-// Buildagon's HTML overlay: HUD, build menu, system menu, help, toasts, and the
-// first-run welcome card. #ui ignores the pointer; interactive panels opt back in.
+// Buildagon's HTML overlay: HUD, build menu, system menu, help, nature journal,
+// toasts, and the first-run welcome card. #ui ignores the pointer; interactive panels opt back in.
 //
 // Events:
 //   'settings'   (settings)  after the shared settings object changes
@@ -14,6 +14,7 @@ import { Hud } from './Hud.js';
 import { BuildMenu } from './BuildMenu.js';
 import { SystemMenu } from './SystemMenu.js';
 import { Modal, panelHeader } from './Modal.js';
+import { JournalPanel } from './JournalPanel.js';
 import { renderControls, renderKeys, renderNatureGuide } from './controls.js';
 
 const WELCOME_KEY = 'buildagon.welcomed.v1';
@@ -38,12 +39,22 @@ export class UI extends Emitter {
     this.buildMenu = new BuildMenu(this);
     this.systemMenu = new SystemMenu(this);
     this.help = this.createHelp();
+    this.journal = new JournalPanel(this);
     this.toastList = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
     this.welcome = this.createWelcome();
     this.emptyPrompt = this.createEmptyPrompt();
-    this.menus = [this.buildMenu, this.systemMenu, this.help];
+    this.menus = [this.buildMenu, this.systemMenu, this.help, this.journal];
 
-    root.append(this.hud.el, this.emptyPrompt, this.scrim, this.buildMenu.layer, this.systemMenu.layer, this.help.layer, this.toastList);
+    root.append(
+      this.hud.el,
+      this.emptyPrompt,
+      this.scrim,
+      this.buildMenu.layer,
+      this.systemMenu.layer,
+      this.help.layer,
+      this.journal.layer,
+      this.toastList,
+    );
     if (this.welcome) root.append(this.welcome);
 
     ctx.hotbars?.on('change', () => this.onHotbars());
@@ -115,6 +126,10 @@ export class UI extends Emitter {
 
   toggleHelp(force) {
     this.toggleMenu(this.help, force);
+  }
+
+  toggleJournal(force) {
+    this.toggleMenu(this.journal, force);
   }
 
   toggleHud(force) {

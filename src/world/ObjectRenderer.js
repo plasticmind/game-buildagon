@@ -1,11 +1,15 @@
 // Renders placed objects (decorations and structures) from World events.
 // Handles the squash-and-stretch pop on placement, the shrink on removal,
 // per-model animation hooks, particle emitters, and a small pool of night lights.
+//
+// Hex roofs on neighboring cells at the same height join into one roof. Each
+// roof's model knows which of its edges are joined; when a roof comes, goes, or
+// moves, its neighbors rebuild in place to match.
 
 import * as THREE from 'three';
 import { buildModel } from '../catalog/models/index.js';
 import { getItem } from '../catalog/catalog.js';
-import { worldToHex } from '../core/hex.js';
+import { worldToHex, neighbor, mod6, parseKey, key as hexKey } from '../core/hex.js';
 import { popScale, shrinkScale, springValue } from '../fx/spring.js';
 import { U, LAYERS } from '../render/shared.js';
 
@@ -13,6 +17,9 @@ const LIGHT_POOL = 6;
 const DEFAULT_LIGHT = { color: '#ffc87a', intensity: 6, distance: 9, decay: 1.6 };
 const LIGHT_RANGE = 90; // Light sources farther than this from the camera get no pool light.
 const SHADOW_MIN_HEIGHT = 0.7; // Shorter objects don't cast shadows.
+const JOIN_ITEM = 'roof_hex'; // Roofs that join their neighbors.
+const JOIN_DY = 0.05; // Roofs this close in height count as level.
+const STEP = Math.PI / 3;
 
 const _v = new THREE.Vector3();
 const _box = new THREE.Box3();
@@ -48,9 +55,22 @@ export class ObjectRenderer {
     }
     this._lightTimer = 0;
 
-    world.on('objectAdded', (obj, opts) => this._add(obj, opts.animate));
-    world.on('objectRemoved', (obj, opts) => this._remove(obj, opts.animate));
-    world.on('objectUpdated', (obj, prev, opts) => this._update(obj, prev, opts));
+    world.on('objectAdded', (obj, opts) => {
+      this._add(obj, opts.animate);
+      if (obj.item === JOIN_ITEM) this._rejoinAround(obj);
+    });
+    world.on('objectRemoved', (obj, opts) => {
+      this._remove(obj, opts.animate);
+      if (obj.item === JOIN_ITEM) this._rejoinAround(obj);
+    });
+    world.on('objectUpdated', (obj, prev, opts) => {
+      this._update(obj, prev, opts);
+      if (obj.item !== JOIN_ITEM && prev.item !== JOIN_ITEM) return;
+      const e = this.entries.get(obj.id);
+      if (e && obj.item === JOIN_ITEM && this._joinsOf(obj) !== e.joins) this._rebuildModel(e);
+      this._rejoinAround(prev);
+      this._rejoinAround(obj);
+    });
     world.on('reset', () => this._rebuildAll());
   }
 
@@ -88,6 +108,24 @@ export class ObjectRenderer {
     return this.entries.get(id)?.bounds ?? null;
   }
 
+  // Which edges of a hex roof at (q, r), height y, have a level hex roof next
+  // door. Bit i is the model's local edge i: a model turned by rotY has its local
+  // edge i on world edge i - rotY / 60°.
+  roofJoins(q, r, y, rotY = 0, exceptId = null) {
+    const turn = Math.round(rotY / STEP);
+    let mask = 0;
+    for (let i = 0; i < 6; i++) {
+      const nb = neighbor(q, r, i);
+      for (const o of this.world.objectsInCell(hexKey(nb.q, nb.r))) {
+        if (o.item === JOIN_ITEM && o.edge === null && o.id !== exceptId && Math.abs(o.y - y) < JOIN_DY) {
+          mask |= 1 << mod6(i + turn);
+          break;
+        }
+      }
+    }
+    return mask;
+  }
+
   // Height of an object's stacking surface above its base, in world units.
   topOf(id) {
     const e = this.entries.get(id);
@@ -105,38 +143,23 @@ export class ObjectRenderer {
 
   _add(obj, animate) {
     if (this.entries.has(obj.id)) this._dispose(this.entries.get(obj.id));
-    const model = buildModel(obj.item, obj.variant, obj.seed);
+    const joins = obj.item === JOIN_ITEM ? this._joinsOf(obj) : 0;
+    const model = buildModel(obj.item, obj.variant, obj.seed, { joins });
     const root = new THREE.Group();
     root.add(model);
     root.position.set(obj.x, obj.y, obj.z);
     root.rotation.y = obj.rotY;
     root.scale.setScalar(obj.scale);
     root.userData.objectId = obj.id;
-    // Low things (flowers, lily pads, floors) cast shadows nobody notices, and
-    // every caster is another draw call in the shadow pass.
-    _box.setFromObject(model);
-    const bounds = _box.clone();
-    const castShadow = (_box.max.y - _box.min.y) * obj.scale >= SHADOW_MIN_HEIGHT;
-    model.traverse((o) => {
-      o.userData.objectId = obj.id;
-      if (!o.isMesh) return;
-      if (o.layers.mask === 0) o.layers.set(LAYERS.WORLD);
-      if (!castShadow) o.castShadow = false;
-    });
     this.group.add(root);
-    root.updateMatrixWorld(true);
 
     const item = getItem(obj.item);
-    const entry = { obj, root, model, bounds, anim: null, emitters: [], light: null };
-    this._syncDepthLayer(entry);
+    const entry = { obj, root, model, bounds: null, joins, anim: null, emitters: [], light: null };
+    this._prepModel(entry);
     if (model.userData.lightOffset || item?.light) {
       const offset = model.userData.lightOffset ?? new THREE.Vector3(0, 1, 0);
       entry.light = { ...DEFAULT_LIGHT, ...item?.light, offset };
       this.lit.add(entry);
-    }
-    for (const em of model.userData.emitters ?? []) {
-      const pos = root.localToWorld(em.offset.clone());
-      entry.emitters.push({ handle: this.particles.addEmitter(em.type, pos, em), offset: em.offset });
     }
     if (model.userData.animate) this.animated.add(entry);
     if (animate) {
@@ -145,6 +168,65 @@ export class ObjectRenderer {
       model.scale.set(s.xz, s.y, s.xz);
     }
     this.entries.set(obj.id, entry);
+  }
+
+  // Bounds, shadows, layers, and emitters for an entry's current model.
+  _prepModel(e) {
+    const { obj, model, root } = e;
+    // Low things (flowers, lily pads, floors) cast shadows nobody notices, and
+    // every caster is another draw call in the shadow pass.
+    _box.setFromObject(model);
+    e.bounds = _box.clone();
+    const castShadow = (_box.max.y - _box.min.y) * obj.scale >= SHADOW_MIN_HEIGHT;
+    model.traverse((o) => {
+      o.userData.objectId = obj.id;
+      if (!o.isMesh) return;
+      if (o.layers.mask === 0) o.layers.set(LAYERS.WORLD);
+      if (!castShadow) o.castShadow = false;
+    });
+    root.updateMatrixWorld(true);
+    this._syncDepthLayer(e);
+    for (const em of model.userData.emitters ?? []) {
+      const pos = root.localToWorld(em.offset.clone());
+      e.emitters.push({ handle: this.particles.addEmitter(em.type, pos, em), offset: em.offset });
+    }
+  }
+
+  _joinsOf(obj) {
+    const [q, r] = obj.cell ? parseKey(obj.cell) : (({ q, r }) => [q, r])(worldToHex(obj.x, obj.z));
+    return this.roofJoins(q, r, obj.y, obj.rotY, obj.id);
+  }
+
+  // Swap in a model with the roof's current joins, without a pop. A placement
+  // pop or move already under way carries on with the new model.
+  _rebuildModel(e) {
+    const { obj } = e;
+    const joins = this._joinsOf(obj);
+    const old = e.model;
+    const model = buildModel(obj.item, obj.variant, obj.seed, { joins });
+    model.scale.copy(old.scale);
+    e.root.remove(old);
+    old.traverse((o) => {
+      if (o.isMesh) o.geometry.dispose();
+    });
+    this._removeEmitters(e);
+    e.root.add(model);
+    e.model = model;
+    e.joins = joins;
+    this._prepModel(e);
+  }
+
+  // Rebuild the level hex roofs around obj's cell whose joins changed.
+  _rejoinAround(obj) {
+    const [q, r] = obj.cell ? parseKey(obj.cell) : (({ q, r }) => [q, r])(worldToHex(obj.x, obj.z));
+    for (let i = 0; i < 6; i++) {
+      const nb = neighbor(q, r, i);
+      for (const o of this.world.objectsInCell(hexKey(nb.q, nb.r))) {
+        if (o.item !== JOIN_ITEM || o.edge !== null) continue;
+        const e = this.entries.get(o.id);
+        if (e && this._joinsOf(o) !== e.joins) this._rebuildModel(e);
+      }
+    }
   }
 
   _remove(obj, animate) {

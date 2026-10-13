@@ -14,18 +14,35 @@
 //   rabbit     tall grass, bushes, and ferns on grassy ground
 //   cat        a house: a door wall plus a roof or ceiling (or three walls)
 //
+// Rare visitors come and go on their own schedule (see Visitor.js):
+//   fairy      three or more glowing mushrooms in a ring, past midnight
+//   owl        a grove with three or more pines, at night
+//   whale      a long coastline on the open sea, at sunrise or sunset
+//   fox        a grove beside rabbit cover, at golden hour
+//   bear       a waterfall pouring into a lake of 4 or more cells, at dawn
+//   dragon     a campfire on a high stone or snow peak, late at night
+//   turtle     a dark, quiet sandy beach (no lights or buildings), at night
+//
 // A slot is { key, species, x, y, z, ...data }. Keys stay the same while the
 // build that created the slot stays put, so creatures keep their identity
 // across unrelated edits.
 
 import { DIRS, EDGE_NORMALS, hexToWorld, key as hexKey, worldToHex } from '../core/hex.js';
 import { HEX_APOTHEM, SEA_Y } from '../core/constants.js';
+import { getItem } from '../catalog/catalog.js';
 import { rimY, cellSurfaceY, cellGroundY } from '../world/World.js';
 
-export const SPECIES = ['frog', 'duck', 'swan', 'koi', 'fish', 'butterfly', 'songbird', 'gull', 'rabbit', 'cat'];
+export const SPECIES = [
+  'frog', 'duck', 'swan', 'koi', 'fish', 'butterfly', 'songbird', 'gull', 'rabbit', 'cat',
+  'fairy', 'owl', 'whale', 'fox', 'bear', 'dragon', 'turtle',
+];
+export const RARE = new Set(['fairy', 'owl', 'whale', 'fox', 'bear', 'dragon', 'turtle']);
 
 // Most creatures of each kind alive at once, so big worlds stay cheap.
-export const CAPS = { frog: 12, duck: 9, swan: 4, koi: 12, fish: 6, butterfly: 12, songbird: 10, gull: 5, rabbit: 8, cat: 3 };
+export const CAPS = {
+  frog: 12, duck: 9, swan: 4, koi: 12, fish: 6, butterfly: 12, songbird: 10, gull: 5, rabbit: 8, cat: 3,
+  fairy: 2, owl: 3, whale: 1, fox: 1, bear: 1, dragon: 1, turtle: 1,
+};
 
 const SMALL_POND = 12;
 const TREES = new Set(['tree_round', 'tree_pine', 'tree_birch', 'tree_willow']);
@@ -405,11 +422,144 @@ export function analyzeHabitats(world, objects) {
     });
   }
 
+  // ---- Rare visitors ----
+
+  // Fairy: a ring of glowing mushrooms.
+  const glowing = items('mushrooms').filter((o) => o.variant === 2 && at(o).type === 'land');
+  for (const g of cluster(glowing, 3)) {
+    if (g.length < 3) continue;
+    const caps = g.map((o) => ({ x: o.x, y: topOf(o, 0.3), z: o.z }));
+    const cx = caps.reduce((t, c) => t + c.x, 0) / caps.length;
+    const cz = caps.reduce((t, c) => t + c.z, 0) / caps.length;
+    add('fairy', { key: `fairy:${g[0].id}`, x: cx, y: g[0].y, z: cz, caps });
+  }
+
+  // Owl: a grove with three or more pines.
+  for (const g of cluster(trees, 7)) {
+    const pines = g.filter((o) => o.item === 'tree_pine');
+    if (pines.length < 3) continue;
+    const perches = pines.map((o) => ({ x: o.x, y: topOf(o, 3.5) - 0.1, z: o.z }));
+    add('owl', { key: `owl:${pines[0].id}`, x: perches[0].x, y: perches[0].y, z: perches[0].z, perches });
+  }
+
+  // Whale: a long coastline on the open sea.
+  let coast = 0;
+  let lx = 0;
+  let lz = 0;
+  let land = 0;
+  let reach = 0;
+  for (const c of world.cells.values()) {
+    const w = hexToWorld(c.q, c.r);
+    lx += w.x;
+    lz += w.z;
+    land++;
+    if (DIRS.some(([dq, dr]) => !world.getCell(c.q + dq, c.r + dr))) coast++;
+  }
+  if (coast >= 12) {
+    lx /= land;
+    lz /= land;
+    for (const c of world.cells.values()) {
+      const w = hexToWorld(c.q, c.r);
+      reach = Math.max(reach, Math.hypot(w.x - lx, w.z - lz));
+    }
+    add('whale', { key: 'whale', x: lx, y: SEA_Y, z: lz, reach });
+  }
+
+  // Fox: a grove next to rabbit cover.
+  const coverGroups = cluster(
+    all.filter((o) => COVER.has(o.item) && at(o).type === 'land'),
+    6,
+  ).filter((g) => g.length >= 3);
+  const campfires = items('campfire');
+  for (const g of cluster(trees, 7)) {
+    if (g.length < 3) continue;
+    const near12 = bounds(g, 12);
+    const meadow = coverGroups.find((cg) => cg.some((o) => near12(o) && g.some((t) => near(t, o, 12))));
+    if (!meadow) continue;
+    const fire = campfires.find((f) => g.some((t) => near(t, f, 14)) || meadow.some((o) => near(o, f, 14)));
+    // Groves chain across a whole island, so the fox only uses the trees at the
+    // meadow's edge (or the closest few).
+    const gap = (t) => Math.min(...meadow.map((o) => Math.hypot(t.x - o.x, t.z - o.z)));
+    const byGap = [...g].sort((a, b) => gap(a) - gap(b));
+    const edge = byGap.filter((t) => gap(t) <= 9);
+    const trunks = (edge.length >= 2 ? edge : byGap.slice(0, 3)).map((o) => ({ x: o.x, y: o.y, z: o.z }));
+    add('fox', {
+      key: `fox:${g[0].id}`,
+      x: trunks[0].x, y: trunks[0].y, z: trunks[0].z,
+      trunks,
+      cover: meadow.map((o) => ({ x: o.x, y: o.y, z: o.z })),
+      fire: fire ? { x: fire.x, y: fire.y, z: fire.z } : null,
+    });
+  }
+
+  // Bear: the foot of a waterfall that pours into a lake with fish.
+  for (const b of bodies) {
+    if (b.sea || b.cells.length < 4) continue;
+    let falls = null;
+    for (const c of b.cells) {
+      for (let i = 0; i < 6 && !falls; i++) {
+        const n = world.getCell(c.q + DIRS[i][0], c.r + DIRS[i][1]);
+        if (!n || n.type !== 'water' || n.h <= c.h) continue;
+        // A bank at the lake's own level to wade in from.
+        let bank = null;
+        for (let j = 0; j < 6 && !bank; j++) {
+          const l = world.getCell(c.q + DIRS[j][0], c.r + DIRS[j][1]);
+          if (l && l.type !== 'water' && l.h === c.h) bank = { l, j };
+        }
+        if (!bank) continue;
+        const w = hexToWorld(c.q, c.r);
+        const fx = w.x + EDGE_NORMALS[i].x * (HEX_APOTHEM - 0.8);
+        const fz = w.z + EDGE_NORMALS[i].z * (HEX_APOTHEM - 0.8);
+        const bw = hexToWorld(bank.l.q, bank.l.r);
+        falls = {
+          x: fx, y: cellGroundY(c), z: fz,
+          face: Math.atan2(EDGE_NORMALS[i].x, EDGE_NORMALS[i].z),
+          surface: cellSurfaceY(c),
+          bank: { x: bw.x, y: rimY(bank.l.h), z: bw.z },
+          edge: { x: w.x + EDGE_NORMALS[bank.j].x * HEX_APOTHEM, z: w.z + EDGE_NORMALS[bank.j].z * HEX_APOTHEM },
+        };
+      }
+      if (falls) break;
+    }
+    if (falls) add('bear', { key: `bear:${b.id}`, x: falls.x, y: falls.y, z: falls.z, falls });
+  }
+
+  // Dragon: a campfire on a high stone or snow peak.
+  for (const f of campfires) {
+    const c = at(f).cell;
+    if (!c || !['stone', 'snow'].includes(c.type) || c.h < 5) continue;
+    add('dragon', { key: `dragon:${f.id}`, x: f.x, y: f.y, z: f.z, fire: { x: f.x, y: f.y, z: f.z } });
+  }
+
+  // Turtles: a dark, quiet beach with no lights or buildings nearby.
+  const noisy = all.filter((o) => {
+    const pl = getItem(o.item)?.placement;
+    return pl === 'edge' || pl === 'cell' || o.item === 'lantern' || o.item === 'campfire' || o.item === 'windmill';
+  });
+  for (const g of beachGroups) {
+    if (g.length < 3) continue;
+    if (noisy.some((o) => g.some((b) => near(b, o, 8)))) continue;
+    let sx = 0;
+    let sz = 0;
+    for (const b of g) {
+      sx += b.seaward.x;
+      sz += b.seaward.z;
+    }
+    const len = Math.hypot(sx, sz) || 1;
+    // Nest on the most seaward cell, a little way back from the water.
+    const nest = g.reduce((best, b) => (b.seaward.x * sx + b.seaward.z * sz > best.seaward.x * sx + best.seaward.z * sz ? b : best), g[0]);
+    add('turtle', {
+      key: `turtle:${beach[g[0].id].id}`,
+      x: nest.x - (sx / len) * 0.6, y: nest.y, z: nest.z - (sz / len) * 0.6,
+      sea: { x: sx / len, z: sz / len },
+    });
+  }
+
   // Ground obstacles near walkers, for path checks.
   const solids = all
     .filter((o) => SOLID_R[o.item] && !SOFT.has(o.item))
     .map((o) => ({ x: o.x, z: o.z, r: SOLID_R[o.item] * o.scale }));
-  for (const species of ['rabbit', 'cat', 'songbird']) {
+  for (const species of ['rabbit', 'cat', 'songbird', 'fox']) {
     for (const s of slots.get(species)) s.solids = solids.filter((o) => near(o, s, 16));
   }
 

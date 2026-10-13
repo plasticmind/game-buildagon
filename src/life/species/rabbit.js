@@ -51,7 +51,7 @@ export class Rabbit extends Creature {
     const { ctx } = this;
     if (this.state === 'hidden') {
       this.hidden = true;
-      if (ctx.night < 0.4) this._emerge();
+      if (ctx.night < 0.4 && !this._foxNear()) this._emerge();
       return;
     }
     this.grow = approach(this.grow, this.state === 'vanish' ? 0 : 1, dt, 0.1);
@@ -70,8 +70,8 @@ export class Rabbit extends Creature {
       return;
     }
 
-    // Sitting.
-    if (!this.leaving && ctx.night > 0.62) {
+    // Sitting. Off to cover at night, or when a fox comes close.
+    if (!this.leaving && (ctx.night > 0.62 || this._foxNear())) {
       this._goHide();
       return;
     }
@@ -214,6 +214,14 @@ export class Rabbit extends Creature {
     this.goal = c ? { x: c.x, y: c.y, z: c.z, into: true } : null;
     if (!c) this.set('vanish');
     else this._nextHop();
+  }
+
+  _foxNear() {
+    for (const c of this.ctx.creatures.values()) {
+      if (c.species !== 'fox' || c.state === 'away' || c.hidden) continue;
+      if ((c.pos.x - this.pos.x) ** 2 + (c.pos.z - this.pos.z) ** 2 < 4.5 * 4.5) return true;
+    }
+    return false;
   }
 
   _hideAway() {

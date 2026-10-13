@@ -16,6 +16,7 @@ import { generateStarterWorld, generateEmptyIsland } from './world/worldgen.js';
 import { ObjectRenderer } from './world/ObjectRenderer.js';
 import { Wildlife } from './life/Wildlife.js';
 import { Growth } from './life/Growth.js';
+import { Journal } from './life/Journal.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { Hotbars } from './build/hotbars.js';
 import { BuildController } from './build/BuildController.js';
@@ -28,6 +29,12 @@ import { randomSeed } from './core/random.js';
 import { worldToHex } from './core/hex.js';
 
 loadSettings();
+
+// Add ?fresh to the URL for a new world that never touches the autosave (or the
+// journal), which is handy for testing in a second tab. ?fresh=starter or
+// ?fresh=empty picks the kind; plain ?fresh starts on open water.
+const params = new URLSearchParams(location.search);
+const fresh = params.has('fresh');
 
 const pipeline = new RenderPipeline(document.getElementById('app'));
 const { scene, camera } = pipeline;
@@ -45,7 +52,8 @@ const grass = new GrassRenderer(scene, world);
 const water = new WaterRenderer(scene, world, particles);
 const objects = new ObjectRenderer(scene, world, { particles });
 const audio = new AudioSystem(settings);
-const wildlife = new Wildlife(scene, world, { objects, particles, audio });
+const journal = new Journal({ persist: !fresh });
+const wildlife = new Wildlife(scene, world, { objects, particles, audio, sky, journal });
 const growth = new Growth(world, { particles, sound: wildlife.ctx.sound });
 const hotbars = new Hotbars();
 const input = new Input(pipeline.canvas);
@@ -63,13 +71,8 @@ const build = new BuildController({
   input,
 });
 
-// Add ?fresh to the URL for a new world that never touches the autosave, which
-// is handy for testing in a second tab. ?fresh=starter or ?fresh=empty picks
-// the kind; plain ?fresh starts on open water.
-const params = new URLSearchParams(location.search);
-const fresh = params.has('fresh');
 const saves = new SaveSystem({ world, sky, pipeline, hotbars, cameraRig, autosave: !fresh });
-const ui = new UI(document.getElementById('ui'), { hotbars, audio, saves, settings, catalog, build });
+const ui = new UI(document.getElementById('ui'), { hotbars, audio, saves, settings, catalog, build, journal });
 
 // ---- World lifecycle ----------------------------------------------------
 
@@ -124,6 +127,30 @@ ui.on('menu', (open) => build.setEnabled(!open));
 ui.on('timeOfDay', (h) => (sky.time = h));
 build.on('state', (s) => ui.setState(s));
 wildlife.on('announce', (msg) => ui.toast(msg));
+
+// Discoveries can land together (a settled island on its first visit), so they
+// take turns: one chime and one toast at a time.
+const news = [];
+let newsBusy = false;
+function shareNews() {
+  const msg = news.shift();
+  newsBusy = !!msg;
+  if (!msg) return;
+  audio.play('discover');
+  ui.toast(msg);
+  setTimeout(shareNews, 1400);
+}
+journal.on('discover', (entry, { golden }) => {
+  if (golden) news.push(`You spotted a golden ${entry.name.toLowerCase()}. It's in your journal.`);
+  else if (entry.rare) news.push(`You saw ${entry.called}. It's in your journal now.`);
+  else if (journal.found === 1) news.push(`New in your journal: ${entry.name}. Press J to open it.`);
+  else news.push(`New in your journal: ${entry.name}`);
+  if (!newsBusy) shareNews();
+});
+journal.on('unlock', (itemId) => {
+  if (itemId === 'moonflower') ui.toast('The fairy left a moonflower. You can plant moonflowers now.');
+  ui.buildMenu.refreshLocks();
+});
 audio.onTrack = (track) => ui.toast(`Now playing: ${track.title} by ${track.author}`);
 
 // ---- Input routing --------------------------------------------------------
@@ -179,6 +206,9 @@ input.on('keydown', (e) => {
     case 'KeyH':
       hotbars.cyclePreset(e.shiftKey ? -1 : 1);
       audio.play('preset');
+      break;
+    case 'KeyJ':
+      ui.toggleJournal();
       break;
     case 'KeyP':
       ui.toggleHud();
@@ -279,4 +309,4 @@ function advance(seconds = 1, fps = 30) {
 }
 
 // Handy for debugging from the browser console.
-window.game = { advance, world, pipeline, scene, camera, sky, terrain, grass, water, objects, wildlife, growth, particles, audio, hotbars, input, cameraRig, build, saves, ui, settings, U };
+window.game = { advance, world, pipeline, scene, camera, sky, terrain, grass, water, objects, wildlife, growth, journal, particles, audio, hotbars, input, cameraRig, build, saves, ui, settings, U };

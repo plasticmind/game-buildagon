@@ -22,6 +22,11 @@ npm run build    # production bundle; also the fastest way to catch import error
 - `window.game` exposes every system. `game.advance(seconds)` runs frames
   synchronously, which is useful in hidden tabs and headless browsers, where
   `requestAnimationFrame` pauses.
+- To test a rare visitor, pause time (`game.settings.timePaused = true`, then
+  `game.ui.emitSettings()`), call `game.wildlife.summon('fairy')`, set
+  `game.sky.time` to an hour outside its window and then inside it, and call
+  `game.advance(seconds)`. `?fresh` tabs use a temporary journal, so
+  `game.journal` starts empty.
 
 ## Visual direction
 
@@ -196,12 +201,50 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
 - `game.wildlife.list()` and `game.wildlife.slots` help with debugging, and
   `game.growth.grow(focus)` runs one round of growth on demand.
 
+### Rare visitors, golden animals, and the journal
+
+- `Visitor.js` extends `Creature` for rare visitors. A visitor waits in
+  `'away'` (hidden) until `inWindow()` opens, then rolls `cfg.chance`. After
+  `cfg.pity` misses in a row, the next window is a sure thing. Subclasses
+  implement `inWindow()`, `visit()`, `visitTick(dt)`, and `depart()`, and call
+  `goAway()` when a visit ends. `summon()` forces the next window.
+- About one common animal in 30 is golden. `Creature` decides from a hash of
+  the slot key, so the same habitat keeps its golden animal across reloads,
+  and `gild()` in `models.js` recolors the model. Golden animals glint.
+- `Journal.js` is the player's record, not the world's, so it isn't part of the
+  save format. It lives in `localStorage` under `buildagon.journal.v1` and
+  holds sightings (`see(id, { golden })`) and unlocked items (`unlock(itemId)`).
+  It emits `'discover'` and `'unlock'`; `main.js` turns them into toasts.
+- Every 0.25 seconds, `Wildlife` records each creature that's showing, on
+  screen, and within its sight range (30 units by default, 170 for the whale).
+  A creature can override `sightable()`, as the turtle nest does until its
+  hatchlings appear.
+- Animals can change the world through `ctx.plant(item, variant, x, z)`, which
+  grows a plant where there's room, and `ctx.unlock(itemId)`. The fairy uses
+  both to leave a moonflower.
+- Catalog items with `locked: true` stay out of the build menu (tabs, counts,
+  and search) until `journal.isUnlocked(id)`.
+- `src/ui/JournalPanel.js` draws the journal (J). Portraits come from
+  `getModelThumbnail(key, build, { silhouette, azimuth, elevation })` in
+  `src/ui/thumbnails.js`, which renders any model offscreen; unseen animals
+  render as flat silhouettes.
+
 ## Models (`src/catalog`)
 
 - `catalog.js` lists every item: id, category, placement type, variants, sound.
-- `models/index.js` exposes `buildModel(itemId, variant, seed)`.
-- Builder files (`tiles.js`, `nature.js`, `structures.js`, `props.js`) each
-  export `builders = { itemId: (variant, rng) => THREE.Object3D }`.
+- `models/index.js` exposes `buildModel(itemId, variant, seed, opts)`. `opts`
+  carries context from the world, such as a roof's joins.
+- Builder files (`tiles.js`, `nature.js`, `structures.js`, `props.js`, and
+  `furniture.js`) each export
+  `builders = { itemId: (variant, rng, opts) => THREE.Object3D }`.
+- Joined roofs: `ObjectRenderer.roofJoins(q, r, y, rotY)` returns a 6-bit mask
+  of the model-local edges whose neighbor cell has a `roof_hex` at the same
+  height (local edge = `mod6(world edge + round(rotY / 60°))`). The roof
+  builder keeps the lone hip roof for mask 0. Otherwise it builds each facet
+  from the planes of the open (exterior) edges, so neighbors meet exactly along
+  the shared edge. When a roof is added, removed, or moved, the renderer
+  rebuilds the roofs around it in place, with no pop. The blueprint ghost uses
+  the same mask.
 - `models/util.js` is the toolkit: primitives, `paint`, `sway`, `jitter`, `tr`,
   and `assemble({ solid, double, foliage, glow })`, which merges parts into one
   mesh per shared material.
@@ -220,7 +263,7 @@ These mechanisms keep frames cheap. Keep them in mind when adding features.
 | Water | `src/world/WaterRenderer.js` (plus any `src/world/water/*` helpers) |
 | Atmosphere | `src/render/pipeline.js`, `src/render/sky.js`, `src/render/fog.js`, `src/fx/particles.js` |
 | Nature models | `src/catalog/models/nature.js`, `src/catalog/models/tiles.js` |
-| Structure models | `src/catalog/models/structures.js`, `src/catalog/models/props.js` |
+| Structure models | `src/catalog/models/structures.js`, `src/catalog/models/props.js`, `src/catalog/models/furniture.js` |
 | UI, audio, saves | `src/ui/*`, `src/audio/*`, `src/save/*`, and the `<!-- UI-FONTS -->` line in `index.html` |
 | Wildlife and growth | `src/life/*` |
 
@@ -247,6 +290,7 @@ in your final report instead.
 | T (hold) | Time-lapse |
 | Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z | Undo, redo |
 | Ctrl/Cmd+S | Quick save |
+| J | Nature journal |
 | P | Hide the HUD |
 | F1 or ? | Help |
 | Esc | Close menus, leave destroy mode, or open the system menu |

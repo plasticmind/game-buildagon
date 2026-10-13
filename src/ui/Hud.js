@@ -17,6 +17,7 @@ const HINTS = [
   [['F'], 'Next variant'],
   [['G'], 'Grid snap'],
   [['H'], 'Next preset'],
+  [['J'], 'Nature journal'],
   [['F1'], 'All controls'],
 ];
 

@@ -3,8 +3,12 @@
 // One shared WebGLRenderer draws every thumbnail. Requests are cached, queued,
 // and rendered a few at a time in idle callbacks, so opening a menu never stalls.
 //
-//   getThumbnail(itemId, variant)   Promise<dataURL | null>
-//   peekThumbnail(itemId, variant)  the cached dataURL, or null if not ready yet
+//   getThumbnail(itemId, variant)            Promise<dataURL | null>
+//   peekThumbnail(itemId, variant)           the cached dataURL, or null if not ready yet
+//   getModelThumbnail(key, build, options)   Promise<dataURL | null> for any model;
+//                                            build() returns a fresh THREE.Object3D.
+//                                            { silhouette: true } draws it as a flat shape;
+//                                            { azimuth, elevation } (degrees) turn the view.
 
 import * as THREE from 'three';
 import { buildModel, hasModel } from '../catalog/models/index.js';
@@ -20,11 +24,9 @@ const BATCH = 3;
 // A pleasant 3/4 view: 40° around from the front, 30° above the horizon.
 const AZIMUTH = THREE.MathUtils.degToRad(40);
 const ELEVATION = THREE.MathUtils.degToRad(30);
-const VIEW_DIR = new THREE.Vector3(
-  Math.sin(AZIMUTH) * Math.cos(ELEVATION),
-  Math.sin(ELEVATION),
-  Math.cos(AZIMUTH) * Math.cos(ELEVATION),
-);
+const viewDir = (azimuth, elevation) =>
+  new THREE.Vector3(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation));
+const VIEW_DIR = viewDir(AZIMUTH, ELEVATION);
 
 const promises = new Map(); // key → Promise<string | null>
 const ready = new Map(); // key → string | null
@@ -59,12 +61,24 @@ const idle =
     : (fn) => requestAnimationFrame(() => setTimeout(() => fn(null), 0));
 
 export function getThumbnail(itemId, variant = 0) {
-  const key = `${itemId}:${variant}`;
+  return request(`${itemId}:${variant}`, () => makeModel(itemId, variant), { label: itemId });
+}
+
+// Keys share one cache with item thumbnails, so they get a prefix of their own.
+export function getModelThumbnail(key, build, { silhouette = false, azimuth, elevation } = {}) {
+  const view =
+    azimuth === undefined && elevation === undefined
+      ? VIEW_DIR
+      : viewDir(THREE.MathUtils.degToRad(azimuth ?? 40), THREE.MathUtils.degToRad(elevation ?? 30));
+  return request(`model:${key}${silhouette ? ':silhouette' : ''}`, build, { label: key, silhouette, view });
+}
+
+function request(key, build, { label, silhouette = false, view = VIEW_DIR }) {
   const gen = currentGeneration();
   let p = promises.get(key);
   if (!p) {
     p = new Promise((resolve) => {
-      const job = { itemId, variant, key, resolve, gen };
+      const job = { key, build, label, silhouette, view, resolve, gen };
       queue.push(job);
       jobs.set(key, job);
     });
@@ -105,7 +119,7 @@ function work(deadline) {
     }
     const job = nextJob();
     jobs.delete(job.key);
-    const url = render(job.itemId, job.variant);
+    const url = render(job);
     ready.set(job.key, url);
     job.resolve(url);
     done++;
@@ -150,24 +164,29 @@ function init() {
   return true;
 }
 
-function render(itemId, variant) {
+// Unseen journal animals show as a flat shape, like a shadow in the grass.
+let silhouetteMat = null;
+
+function render({ build, label, silhouette, view }) {
   if (!init()) return null;
   let model = null;
   const night = U.uNight.value;
   const wind = U.uWindStrength.value;
   try {
-    model = makeModel(itemId, variant);
+    model = build();
     scene.add(model);
-    frame(model);
+    frame(model, view);
     // Render with daytime glow and calm wind, whatever the world is doing.
     U.uNight.value = 0;
     U.uWindStrength.value = 0;
+    if (silhouette) scene.overrideMaterial = silhouetteMat ??= new THREE.MeshBasicMaterial({ color: '#8a7864' });
     renderer.render(scene, camera);
     return renderer.domElement.toDataURL('image/png');
   } catch (err) {
-    console.warn(`[thumbnails] couldn't render ${itemId}`, err);
+    console.warn(`[thumbnails] couldn't render ${label}`, err);
     return null;
   } finally {
+    scene.overrideMaterial = null;
     U.uNight.value = night;
     U.uWindStrength.value = wind;
     if (model) {
@@ -182,15 +201,15 @@ const _center = new THREE.Vector3();
 const _size = new THREE.Vector3();
 const _v = new THREE.Vector3();
 
-// Point the camera at the model from the 3/4 angle and fit its projected bounds.
-function frame(model) {
+// Point the camera at the model from `view` and fit its projected bounds.
+function frame(model, view) {
   model.updateMatrixWorld(true);
-  _box.setFromObject(model);
+  visibleBox(model, _box.makeEmpty());
   if (_box.isEmpty()) _box.set(_v.set(-0.5, 0, -0.5), new THREE.Vector3(0.5, 1, 0.5));
   _box.getCenter(_center);
   const radius = Math.max(0.05, _box.getSize(_size).length() / 2);
 
-  camera.position.copy(_center).addScaledVector(VIEW_DIR, radius * 4);
+  camera.position.copy(_center).addScaledVector(view, radius * 4);
   camera.up.set(0, 1, 0);
   camera.lookAt(_center);
   camera.updateMatrixWorld(true);
@@ -218,6 +237,19 @@ function frame(model) {
   camera.near = 0.01;
   camera.far = radius * 8;
   camera.updateProjectionMatrix();
+}
+
+// Bounds of the visible meshes only. Creatures carry hidden parts (flight
+// wings) that would otherwise shrink them in the frame.
+const _meshBox = new THREE.Box3();
+function visibleBox(obj, box) {
+  if (!obj.visible) return box;
+  if (obj.isMesh && obj.geometry) {
+    if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+    box.union(_meshBox.copy(obj.geometry.boundingBox).applyMatrix4(obj.matrixWorld));
+  }
+  for (const child of obj.children) visibleBox(child, box);
+  return box;
 }
 
 function disposeGeometry(root) {

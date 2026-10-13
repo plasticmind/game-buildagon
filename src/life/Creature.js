@@ -12,6 +12,10 @@
 import * as THREE from 'three';
 import { mulberry32 } from '../core/random.js';
 import { LAYERS } from '../render/shared.js';
+import { RARE } from './habitats.js';
+import { gild } from './models.js';
+
+const GOLDEN_ODDS = 30; // About one in this many common animals is golden.
 
 export const TAU = Math.PI * 2;
 
@@ -32,6 +36,9 @@ export class Creature {
     this.gone = false;
     this.arriving = arrive;
     this.delay = arrive ? delay : 0;
+    // A few common animals are golden. The slot key decides, so the same habitat
+    // keeps the same animal across reloads.
+    this.golden = !RARE.has(slot.species) && hashString(`${slot.key}:gold`) % GOLDEN_ODDS === 0;
     this.hidden = false; // Out of sight (night roosts, burrows, between fish jumps).
     // The manager shows the root only outside 'wait', when not hidden, and in range.
   }
@@ -58,6 +65,10 @@ export class Creature {
 
   // Species override these.
   start() {}
+  // Whether a sighting counts right now (hatchlings only count once they hatch).
+  sightable() {
+    return true;
+  }
   onLeave() {
     this.gone = true;
   }
@@ -81,6 +92,7 @@ export class Creature {
   // Add a model to the root. Shadows only for creatures big enough to show them.
   attach(model, { shadow = false } = {}) {
     this.shadow = shadow;
+    if (this.golden) gild(model);
     model.traverse((o) => {
       if (!o.isMesh) return;
       o.layers.set(LAYERS.WORLD);

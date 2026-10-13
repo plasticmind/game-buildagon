@@ -128,6 +128,89 @@ export const CRITTERS = {
     },
   },
 
+  // The fairy: a quick, sparkling run of bells up the scale.
+  fairy: {
+    gain: 0.5,
+    reverb: 0.45,
+    spread: 0.02,
+    play(v) {
+      const notes = [1046.5, 1318.5, 1568, 2093, 2637];
+      notes.forEach((f, i) => v.bell(f, { at: i * 0.07, d: 0.9, g: 0.05 }));
+      v.noise({ f: 7000, Q: 0.8, a: 0.05, d: 0.6, g: 0.025 });
+    },
+  },
+
+  // A gift appears: two soft, bright bells.
+  gift: {
+    gain: 0.5,
+    reverb: 0.45,
+    play(v) {
+      v.bell(1568, { d: 1.2, g: 0.06 });
+      v.bell(2349, { at: 0.12, d: 1.4, g: 0.05 });
+    },
+  },
+
+  // The owl's "hoo, hoo-hoo".
+  hoot: {
+    gain: 0.5,
+    reverb: 0.4,
+    play(v) {
+      const f = rand(330, 380);
+      v.tone({ f, to: f * 0.93, a: 0.05, hold: 0.18, d: 0.2, g: 0.14, lp: 900 });
+      v.tone({ f: f * 1.04, to: f * 0.95, at: 0.62, a: 0.03, hold: 0.08, d: 0.12, g: 0.11, lp: 900 });
+      v.tone({ f: f * 1.02, to: f * 0.92, at: 0.86, a: 0.03, hold: 0.14, d: 0.2, g: 0.12, lp: 900 });
+    },
+  },
+
+  // A long, low whale song.
+  whale: {
+    gain: 0.5,
+    reverb: 0.6,
+    play(v) {
+      v.tone({ f: 120, to: 210, glide: 1.4, type: 'triangle', lp: 700, a: 0.5, hold: 0.9, d: 1.2, g: 0.16 });
+      v.tone({ f: 240, to: 170, glide: 1.6, type: 'sine', at: 1.8, a: 0.4, hold: 0.6, d: 1.2, g: 0.1 });
+    },
+  },
+
+  // A whale's blow: a long breathy whoosh.
+  spout: {
+    gain: 0.45,
+    reverb: 0.3,
+    play(v) {
+      v.noise({ color: 'pink', type: 'bandpass', f: 900, to: 400, Q: 0.6, a: 0.06, hold: 0.25, d: 0.7, g: 0.3 });
+      v.noise({ color: 'brown', type: 'lowpass', f: 300, a: 0.05, d: 0.6, g: 0.25 });
+    },
+  },
+
+  // The fox's short, high yip.
+  yip: {
+    gain: 0.4,
+    reverb: 0.25,
+    play(v) {
+      v.tone({ f: 900, to: 1350, glide: 0.05, type: 'triangle', lp: 2600, a: 0.008, d: 0.12, g: 0.12 });
+    },
+  },
+
+  // The bear munching a fish.
+  munch: {
+    gain: 0.45,
+    reverb: 0.1,
+    play(v) {
+      for (let i = 0; i < 4; i++) v.noise({ color: 'brown', type: 'lowpass', f: 600, at: i * 0.16, a: 0.01, d: 0.08, g: 0.3 });
+      v.tone({ f: 160, to: 120, type: 'triangle', lp: 500, a: 0.04, hold: 0.2, d: 0.3, g: 0.12 });
+    },
+  },
+
+  // The dragon's little smoky puff.
+  puff: {
+    gain: 0.45,
+    reverb: 0.2,
+    play(v) {
+      v.noise({ color: 'pink', type: 'lowpass', f: 1200, to: 400, a: 0.02, d: 0.35, g: 0.25 });
+      v.tone({ f: 220, to: 330, glide: 0.1, type: 'triangle', lp: 800, a: 0.02, d: 0.18, g: 0.08 });
+    },
+  },
+
   // Something new sprouting: a soft rustle and a tiny chime.
   sprout: {
     gain: 0.4,

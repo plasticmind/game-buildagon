@@ -1,6 +1,7 @@
-// Model registry. buildModel(itemId, variant, seed) returns a fresh THREE.Object3D
-// whose origin is the placement point (base at y = 0). See catalog.js for the
-// orientation conventions of each placement type.
+// Model registry. buildModel(itemId, variant, seed, opts) returns a fresh
+// THREE.Object3D whose origin is the placement point (base at y = 0). See
+// catalog.js for the orientation conventions of each placement type. `opts`
+// carries context a builder may use, such as a roof's joins with its neighbors.
 //
 // Builders may set these on the returned object's userData:
 //   topY          Height of the top surface other pieces stack on (walls, floors).
@@ -14,17 +15,18 @@ import { builders as nature } from './nature.js';
 import { builders as structures } from './structures.js';
 import { builders as props } from './props.js';
 import { builders as tiles } from './tiles.js';
+import { builders as furniture } from './furniture.js';
 
-const BUILDERS = { ...tiles, ...nature, ...structures, ...props };
+const BUILDERS = { ...tiles, ...nature, ...structures, ...props, ...furniture };
 
 export function hasModel(itemId) {
   return itemId in BUILDERS;
 }
 
-export function buildModel(itemId, variant = 0, seed = 1) {
+export function buildModel(itemId, variant = 0, seed = 1, opts = {}) {
   const fn = BUILDERS[itemId];
   const rng = mulberry32(seed);
-  const obj = fn ? fn(variant, rng) : placeholder();
+  const obj = fn ? fn(variant, rng, opts) : placeholder();
   obj.userData.itemId = itemId;
   return obj;
 }

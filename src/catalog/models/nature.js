@@ -921,6 +921,60 @@ function flowers(variant, rng) {
   return build({ foliage });
 }
 
+// ---- Moonflowers ----
+
+// The mushroom fairy's gift: pale trumpet blooms that glow after dark.
+const MOON_PETALS = ['#dce9ff', '#ffd6e8'];
+const MOON_EYE = '#fff1b8';
+const MOON_LEAVES = stops(PALETTE.leafDeep, mix(PALETTE.leafGreen, PALETTE.pineBlue, 0.25));
+
+// A five-pointed star cupped around a throat, two-sided so it reads from below.
+function moonBloom(R) {
+  const pos = [];
+  const throat = [0, -R * 0.4, 0];
+  const rim = [];
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * TAU;
+    const r = k % 2 === 0 ? R : R * 0.6;
+    rim.push([Math.cos(a) * r, k % 2 === 0 ? R * 0.12 : 0, Math.sin(a) * r]);
+  }
+  for (let k = 0; k < 10; k++) {
+    const a = rim[k];
+    const b = rim[(k + 1) % 10];
+    pos.push(...throat, ...b, ...a, ...throat, ...a, ...b);
+  }
+  return trisGeo(pos);
+}
+
+function moonflower(variant, rng) {
+  const v = variantOf(variant, 2);
+  const solid = [];
+  const foliage = [];
+  const glow = [];
+  const spots = scatter(rng, randInt(rng, 3, 5), 0.24, 0.12, { centerFirst: true });
+  spots.forEach((p, i) => {
+    // Tall enough to bloom above the grass.
+    const h = i === 0 ? range(rng, 0.5, 0.6) : range(rng, 0.32, 0.46);
+    const top = stemTip(p, h, rng, 0.2);
+    solid.push(paintFaces(limb(p, top, 0.012, 0.009, 4), () => STEM, 0.05, rng));
+    // Blooms face up and a little outward, like they're looking for the moon.
+    const dir = V(top.x - p.x, 0, top.z - p.z).multiplyScalar(2.2).add(V(range(rng, -0.2, 0.2), 1, range(rng, -0.2, 0.2)));
+    const R = range(rng, 0.085, 0.105) * (i === 0 ? 1.15 : 1);
+    glow.push([mount(tr(moonBloom(R), { ry: rng() * TAU }), top, dir), MOON_PETALS[v]]);
+    glow.push([mount(tr(octa(R * 0.22, 0), { y: -R * 0.12, sy: 0.7 }), top, dir), MOON_EYE]);
+    addLeaves(foliage, p, 2, rng, { w: 0.09, h: 0.2, tilt: 0.9, list: MOON_LEAVES, max: 0.35 });
+  });
+  // A closed bud or two, waiting for tomorrow night.
+  for (const p of scatter(rng, randInt(rng, 1, 2), 0.3, 0.1)) {
+    const top = stemTip(p, range(rng, 0.24, 0.34), rng, 0.25);
+    solid.push(paintFaces(limb(p, top, 0.01, 0.008, 4), () => STEM, 0.05, rng));
+    solid.push(paintFaces(tr(octa(0.025, 0), { x: top.x, y: top.y + 0.02, z: top.z, sy: 1.8 }), () => mix(PALETTE.leafGreen, MOON_PETALS[v], 0.35), 0.04, rng));
+  }
+  const model = build({ solid, foliage, glow });
+  model.userData.lightOffset = V(0, 0.5, 0);
+  return model;
+}
+
 // ---- Flower bed ----
 
 const BED_COLORS = [
@@ -1423,6 +1477,7 @@ export const builders = {
   tall_grass: tallGrass,
   ferns,
   mushrooms,
+  moonflower,
   rock_boulder: rockBoulder,
   rock_cluster: rockCluster,
   stepping_stones: steppingStones,

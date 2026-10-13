@@ -29,6 +29,7 @@ const PATHS = {
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 17h.01"/>',
   alert: '<path d="M12 7v6.5"/><path d="M12 17h.01"/>',
   pause: '<path d="M9 6v12M15 6v12"/>',
+  book: '<path d="M12 6.5c-1.8-1.3-4.3-2-7.5-2v13c3.2 0 5.7.7 7.5 2 1.8-1.3 4.3-2 7.5-2v-13c-3.2 0-5.7.7-7.5 2z"/><path d="M12 6.5v13"/>',
   sparkle: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9-1.9 5.1-1.9-5.1-5.1-1.9 5.1-1.9z" fill="currentColor"/>',
   // Categories.
   terrain: '<path d="M3 19.5l6-10 4 6 2-3 6 7z"/>',
@@ -37,6 +38,7 @@ const PATHS = {
   flora: '<circle cx="12" cy="5.6" r="2"/><circle cx="14.6" cy="8.1" r="2"/><circle cx="12" cy="10.6" r="2"/><circle cx="9.4" cy="8.1" r="2"/><path d="M12 12.6V21M12 18.5c-2-.2-3.5-1.6-3.9-3.4 2 .1 3.5 1.4 3.9 3.4z"/>',
   rocks: '<path d="M3 18.5l3-6 4.2-2.2 3 2 3.3-3 4.5 9.2z"/><path d="M10.2 10.3l1.3 3.2"/>',
   structures: '<path d="M4 11l8-6.5 8 6.5M6 9.5V19.5h12V9.5M10 19.5v-5h4v5"/>',
+  furniture: '<path d="M6.5 10.5V7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3.5"/><path d="M4 12a1.5 1.5 0 0 1 3 0v2h10v-2a1.5 1.5 0 0 1 3 0v5H4z"/><path d="M6 17v2.5M18 17v2.5"/>',
   props: '<path d="M10 4h4M9 7h6l1 10H8zM12 4V2.5M8 20h8M12 10v4"/>',
 };
 

@@ -19,6 +19,9 @@
 //
 // onWater (free items): 'float' sits on the water surface; 'sink' (default) ignores
 // water and sits on the basin floor.
+//
+// locked: hidden from the build menu until the journal unlocks it (a gift from
+// a rare visitor).
 
 import { TERRAIN } from '../core/constants.js';
 
@@ -29,6 +32,7 @@ export const CATEGORIES = [
   { id: 'flora', name: 'Flowers & Plants' },
   { id: 'rocks', name: 'Rocks' },
   { id: 'structures', name: 'Structures' },
+  { id: 'furniture', name: 'Furniture' },
   { id: 'props', name: 'Props' },
 ];
 
@@ -248,6 +252,20 @@ export const ITEMS = [
     randomRotation: true,
     scaleRange: [0.85, 1.2],
   },
+  {
+    // The mushroom fairy's gift. Hidden from the build menu until she leaves one.
+    id: 'moonflower',
+    name: 'Moonflower',
+    category: 'flora',
+    placement: 'free',
+    variants: ['Silver', 'Blush'],
+    sound: 'leaf',
+    foliage: true,
+    locked: true,
+    randomRotation: true,
+    scaleRange: [0.85, 1.15],
+    light: { color: '#cfe8ff', intensity: 2.5, distance: 5 },
+  },
 
   // ---- Rocks ----
   {
@@ -449,6 +467,95 @@ export const ITEMS = [
     sound: 'wood',
     dust: true,
   },
+
+  // ---- Furniture ----
+  // Sized for one-story rooms: 2.4-unit walls and a door about 1.9 tall.
+  {
+    id: 'table',
+    name: 'Table',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Oak', 'Round', 'Tablecloth'],
+    sound: 'wood',
+  },
+  {
+    id: 'chair',
+    name: 'Chair',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Oak', 'Painted', 'Stool'],
+    sound: 'wood',
+  },
+  {
+    id: 'armchair',
+    name: 'Armchair',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Rose', 'Blue', 'Moss'],
+    sound: 'soft',
+  },
+  {
+    id: 'bed',
+    name: 'Bed',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Quilt', 'Double', 'Bunk'],
+    sound: 'soft',
+  },
+  {
+    id: 'bookshelf',
+    name: 'Bookshelf',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Oak', 'Walnut', 'Painted'],
+    sound: 'wood',
+  },
+  {
+    id: 'rug',
+    name: 'Rug',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Braided', 'Striped', 'Hex'],
+    sound: 'soft',
+  },
+  {
+    id: 'lamp',
+    name: 'Lamp',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Floor', 'Table', 'Candles'],
+    sound: 'wood',
+    light: { color: '#ffd9a0', intensity: 3, distance: 6 },
+  },
+  {
+    id: 'fireplace',
+    name: 'Fireplace',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Stone', 'Brick', 'Plaster'],
+    sound: 'stone',
+    dust: true,
+    light: { color: '#ff9a4a', intensity: 5.5, distance: 8, flicker: 'fire' },
+  },
+  {
+    id: 'flower_vase',
+    name: 'Flower Vase',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Tulips', 'Daisies', 'Lavender'],
+    sound: 'soft',
+    randomRotation: true,
+  },
+  {
+    id: 'potted_plant',
+    name: 'Potted Plant',
+    category: 'furniture',
+    placement: 'free',
+    variants: ['Fern', 'Cactus', 'Tall Leaf'],
+    sound: 'soft',
+    randomRotation: true,
+    scaleRange: [0.9, 1.1],
+  },
 ];
 
 export const ITEM_BY_ID = new Map(ITEMS.map((it) => [it.id, it]));
@@ -478,5 +585,9 @@ export const DEFAULT_HOTBARS = [
   {
     name: 'Waterside',
     slots: ['tile_water', 'bridge_arch', 'walkway', 'lily_pads', 'reeds', 'boat', 'stepping_stones', 'tree_willow', 'footbridge'],
+  },
+  {
+    name: 'Home',
+    slots: ['table', 'chair', 'bed', 'flower_vase', 'bookshelf', 'rug', 'lamp', 'potted_plant', 'fireplace'],
   },
 ];

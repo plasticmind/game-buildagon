@@ -1,6 +1,7 @@
 // Pooled particle system: one THREE.Points draw call, simulated on the CPU.
 //
-// One-shot effects: puff (placement dust), splash, leaves, sparkle.
+// One-shot effects: puff (placement dust), splash, leaves, sparkle, spout
+// (a whale's blow), and dust (glowing fairy dust that drifts down).
 // Emitters: 'mist' (waterfall bases), 'smoke' (chimneys, campfires), 'sparks'.
 // Ambient: fireflies at night and faint pollen motes by day, around the view.
 //
@@ -46,6 +47,7 @@ const SPARKLE = 4;
 const MIST = 5;
 const SMOKE = 6;
 const EMBER = 7;
+const FAIRY = 8;
 
 const KINDS = [
   { shape: PUFF, grav: 0.35, drag: 3.2, wind: 0.25, wob: 0, fin: 0.08, fout: 0.2, soft: 0.45, glow: 0 }, // Dust
@@ -56,6 +58,7 @@ const KINDS = [
   { shape: PUFF, grav: 0.25, drag: 1.2, wind: 0.5, wob: 0.3, fin: 0.15, fout: 0.35, soft: 0.1, glow: 0 }, // Mist
   { shape: PUFF, grav: 0.35, drag: 0.6, wind: 0.8, wob: 0.25, fin: 0.12, fout: 0.35, soft: 0.15, glow: 0 }, // Smoke
   { shape: GLOW, grav: 0.9, drag: 0.8, wind: 0.6, wob: 0.8, fin: 0.05, fout: 0.45, soft: 0, glow: 1 }, // Ember
+  { shape: STAR, grav: -0.25, drag: 2.2, wind: 0.15, wob: 0.35, fin: 0.05, fout: 0.4, soft: 0, glow: 1 }, // Fairy dust
 ];
 
 const EMITTER_DEFAULTS = {
@@ -351,6 +354,38 @@ export class Particles {
     }
   }
 
+  // A whale's blow: a column of mist that rises, spreads, and drifts away.
+  spout(pos, { height = 3, color = '#f4f9ff' } = {}) {
+    const base = this._c2.set(color);
+    const c = this._c;
+    for (let i = 0; i < 26; i++) {
+      const a = rand(0, TAU);
+      const up = rand(0.55, 1) * height * 1.6;
+      c.copy(base).multiplyScalar(rand(0.95, 1.03));
+      this._add(MIST, pos.x + Math.cos(a) * 0.15, pos.y + rand(0, 0.3), pos.z + Math.sin(a) * 0.15,
+        Math.cos(a) * rand(0.2, 0.9), up, Math.sin(a) * rand(0.2, 0.9), rand(1.6, 2.6), rand(0.4, 0.7), rand(1.6, 2.6), c, rand(0.35, 0.55));
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = rand(0, TAU);
+      const i2 = this._add(DROP, pos.x, pos.y + height * rand(0.4, 0.8), pos.z,
+        Math.cos(a) * rand(0.6, 1.4), rand(0.5, 2), Math.sin(a) * rand(0.6, 1.4), 1.6, 0.16, 0.1, DROP_COLOR, 0.9);
+      if (i2 >= 0) this.s.floor[i2] = pos.y - 0.05;
+    }
+  }
+
+  // Glowing fairy dust that twinkles as it drifts down.
+  dust(pos, { color = '#fff2a8', count = 1, spread = 0.05 } = {}) {
+    const base = this._c2.set(color);
+    for (let i = 0; i < count; i++) {
+      const i2 = this._add(FAIRY, pos.x + rand(-spread, spread), pos.y + rand(-spread, spread), pos.z + rand(-spread, spread),
+        rand(-0.15, 0.15), rand(-0.1, 0.05), rand(-0.15, 0.15), rand(0.9, 1.6), rand(0.1, 0.16), rand(0.03, 0.06), base, 1);
+      if (i2 >= 0) {
+        this.s.glow[i2] = rand(1.8, 2.8);
+        this.s.spin[i2] = rand(-2, 2);
+      }
+    }
+  }
+
   // ---- Emitters -------------------------------------------------------------
 
   // type: 'mist' | 'smoke' | 'sparks'. opts: { rate, radius, size, color }.
@@ -569,7 +604,7 @@ export class Particles {
       let glow = s.glow[i];
       let third = k.soft; // Puff edge softness, or the leaf tumble squash.
 
-      if (kind === SPARKLE) {
+      if (kind === SPARKLE || kind === FAIRY) {
         a *= 0.55 + 0.45 * Math.sin(age * 22 + ph);
       } else if (kind === EMBER) {
         // Flicker, and cool from yellow-orange toward red as it rises.
