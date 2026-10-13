@@ -9,10 +9,11 @@ It lives in the family arcade as a built game, and the arcade's rules in
 `~/Sites/games/CLAUDE.md` apply too. In particular, nothing in this folder
 reaches outside it.
 
-This folder is the only working copy. Until 2026-10-12, the source lived in
-`~/Sites/labs/game-buildagon` and on GitHub at `plasticmind/game-buildagon`.
-Both stop at the round 2 commit (`c65c5f2`) and are no longer updated, so
-never edit or push there.
+This folder is the only working copy. The public GitHub repo,
+`plasticmind/game-buildagon`, is a backup: `npm run backup` replays arcade
+commits onto it. Never commit or push to GitHub directly. Until 2026-10-12, the
+source lived in `~/Sites/labs/game-buildagon`, which is frozen at the round 2
+commit (`c65c5f2`), so never edit there either.
 
 ## Read first
 
@@ -29,6 +30,7 @@ Run these from this folder:
 ```sh
 npm run dev      # http://localhost:5199
 npm run build    # into dist/; also the fastest way to catch import errors
+npm run backup   # push new arcade commits to GitHub (add -- --dry-run to preview)
 ```
 
 There's no test suite. Verify changes in the browser (see "Testing in the
@@ -137,10 +139,14 @@ reach the NAS.
 1. Verify: `npm run build`, then try the change in the browser.
 2. Commit on a branch of the arcade repo (no attribution), then
    `git merge --ff-only` it into `main` from the main checkout. The arcade has
-   no remote, so there's nothing to push.
-3. From `~/Sites/games`, run `scripts/arcade deploy buildagon --dry-run`, then
+   no remote.
+3. Back up to GitHub with `npm run backup`. It replays each new commit on the
+   arcade's `main` that changed this folder onto the public repo, with the
+   same message (minus the `Buildagon: ` prefix), author, and date. The repo
+   is public, so keep secrets and private details out of this folder.
+4. From `~/Sites/games`, run `scripts/arcade deploy buildagon --dry-run`, then
    `scripts/arcade deploy buildagon`. It builds the game and ships only its
    folder. If `game.json` changed, run a full `scripts/arcade deploy` instead,
    so the hub page updates.
-4. Confirm that <http://bigdata.local/buildagon/> serves the same
+5. Confirm that <http://bigdata.local/buildagon/> serves the same
    `assets/index-*.js` file name as `dist/assets/`.
