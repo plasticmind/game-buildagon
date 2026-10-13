@@ -42,14 +42,14 @@ while read -r c; do
     base="$c"
     break
   fi
-done < <(git rev-list main -- "$prefix")
+done < <(git rev-list main -- .)
 if [[ -z "$base" ]]; then
   echo "error: GitHub's main doesn't match any version of $prefix/ on the arcade's main." >&2
   echo "Someone may have pushed to GitHub directly. Compare the two by hand before backing up." >&2
   exit 1
 fi
 
-todo="$(git rev-list --reverse "$base..main" -- "$prefix")"
+todo="$(git rev-list --reverse "$base..main" -- .)"
 if [[ -z "$todo" ]]; then
   echo "GitHub is up to date with $prefix/ at $(git rev-parse --short "$base")."
   exit 0
